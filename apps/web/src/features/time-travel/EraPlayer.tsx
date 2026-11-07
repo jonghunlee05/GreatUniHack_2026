@@ -2,10 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import type { EraView } from "./progress";
+import type { EraView, MentorVerdict } from "./progress";
 import { SKINS } from "./skins";
-import { SceneBackdrop } from "./components/SceneBackdrop";
+import { SceneArt, propLabel } from "./art/SceneArt";
+import { layoutProps, resolveArt } from "./art/layout";
 import { ClueCard, DialogueBox, Logbook, MentorPanel } from "./components/EraParts";
+import { ExperimentPanel, MentorChatPanel, WarpIntro } from "./components/Interactive";
+import type { Pose } from "./components/Portrait";
 import { PixelButton } from "@/components/pixel/PixelButton";
 import { PixelPanel } from "@/components/pixel/PixelPanel";
 
@@ -17,10 +20,11 @@ const SCENE_LABELS: Record<string, string> = {
 };
 
 type Message = { tone: "good" | "info" | "bad"; text: string } | null;
+type MentorResponse = EraView & { verdict: MentorVerdict; feedback: string; covered?: number };
 
 /**
- * Plays one era: 4 scenes in order. Progress (scene, clues, mentor, finish)
- * is saved on the server after every action, so leaving and returning resumes.
+ * Plays one era: 4 scenes in order, drawn from each scene's art plan.
+ * Progress (scene, clues, experiment, mentor, finish) is saved on the server after every action.
  */
 export function EraPlayer({
   gameId,
@@ -45,11 +49,22 @@ export function EraPlayer({
   const { era, progress } = view;
   const skin = SKINS[era.setting.skin];
   const scene = era.scenes[viewing - 1];
-  const castHere = era.cast.filter((c) => c.scenes.includes(viewing));
+  const art = resolveArt(scene, era.setting.skin);
+  const castHere = era.cast
+    .filter((c) => c.scenes.includes(viewing))
+    .map((c) => ({ ...c, pose: (art.poses.find((p) => p.name === c.name)?.pose ?? "stand") as Pose }));
+
   const cluesHere = scene.clue_ids
     .map((id) => era.clues.find((c) => c.id === id))
     .filter((c): c is NonNullable<typeof c> => Boolean(c));
-  const isMentorScene = viewing === 3;
+  // Clues hidden in a prop that's actually drawn become hotspots; the rest stay as cards.
+  const placed = new Set(layoutProps(art, cluesHere.flatMap((c) => (c.prop ? [c.prop] : []))).map((p) => p.id));
+  const isHidden = (c: (typeof cluesHere)[number]) => Boolean(c.prop && placed.has(c.prop));
+  const collected = (id: string) => progress.collectedClueIds.includes(id);
+  const hiddenLeft = cluesHere.filter((c) => isHidden(c) && !collected(c.id)).length;
+  const visibleClues = cluesHere.filter((c) => !isHidden(c) || collected(c.id));
+
+  const isMentorScene = viewing === era.mentor.scene;
   const atFrontier = viewing === progress.scene;
   const blockedByMentor = isMentorScene && atFrontier && !progress.mentor.passed;
 
@@ -98,35 +113,52 @@ export function EraPlayer({
   }
 
   async function answer(body: { answer?: string; mcqIndex?: number }) {
-    const res = await post<EraView & { verdict: string; feedback?: string }>("mentor", body);
+    const res = await post<MentorResponse>("mentor", body);
     if (!res) return;
     if (res.verdict === "correct") {
       setMentorMsg({ tone: "good", text: `${era.mentor.asked_by} nods. That's it. Carry on to today's rule.` });
     } else if (res.verdict === "choose") {
-      setMentorMsg({ tone: "info", text: res.feedback ?? "Let's narrow it down. Choose the best answer." });
+      setMentorMsg({ tone: "info", text: res.feedback || "Let's narrow it down. Choose the best answer." });
     } else {
-      setMentorMsg({ tone: "bad", text: res.feedback ?? "Not yet. Look at your clues and try again." });
+      setMentorMsg({ tone: res.verdict === "partly" ? "info" : "bad", text: res.feedback || "Not yet. Try again." });
     }
   }
 
   return (
     <div className="space-y-6">
+      <WarpIntro year={era.setting.year} place={era.setting.place} />
+
       <header className="space-y-3">
         <Link href={`/games/${gameId}/time-travel`} className="font-pixel text-[0.6rem] text-px-muted hover:text-px-gold">
           ← Timeline
         </Link>
         <h2 className="font-pixel text-base leading-relaxed text-px-mint">{chapterTitle}</h2>
-        <SceneSteps
-          scenes={era.scenes.map((s) => SCENE_LABELS[s.type])}
-          reached={progress.scene}
-          viewing={viewing}
-          onSelect={setViewing}
-        />
+        <SceneSteps scenes={era.scenes.map((s) => SCENE_LABELS[s.type])} reached={progress.scene} viewing={viewing} onSelect={setViewing} />
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
         <div className="space-y-5">
-          <SceneBackdrop skin={skin} place={era.setting.place} year={era.setting.year} cast={castHere} />
+          <SceneArt
+            art={art}
+            skin={skin}
+            place={era.setting.place}
+            year={era.setting.year}
+            cast={castHere}
+            hotspots={cluesHere.filter(isHidden).map((c) => ({
+              propId: c.prop!,
+              label: propLabel(c.prop!),
+              found: collected(c.id),
+              onFind: () => {
+                if (!collected(c.id) && !busy) post("progress", { type: "collect", clueId: c.id });
+              },
+            }))}
+          />
+          {hiddenLeft > 0 && (
+            <p className="text-lg text-px-gold">
+              ✦ {hiddenLeft === 1 ? "Something in this room looks" : `${hiddenLeft} things in this room look`} worth a closer
+              look. Click the glinting {hiddenLeft === 1 ? "object" : "objects"}.
+            </p>
+          )}
 
           <PixelPanel className="space-y-1" tone="cream">
             <p className="font-pixel text-[0.55rem] text-px-copper-dark">
@@ -136,21 +168,25 @@ export function EraPlayer({
           </PixelPanel>
 
           {scene.dialogue.length > 0 && (
-            <div className="space-y-3">
+            <div className="space-y-3" key={`dlg-${viewing}`}>
               {scene.dialogue.map((d, i) => (
-                <DialogueBox key={i} speaker={d.speaker} line={d.line} skin={skin} />
+                <DialogueBox key={i} speaker={d.speaker} line={d.line} skin={skin} delay={i * 1400} />
               ))}
             </div>
           )}
 
-          {cluesHere.length > 0 && (
+          {view.mentorChat && viewing === view.mentorChat.scene && (
+            <MentorChatPanel chat={view.mentorChat} askedBy={era.mentor.asked_by} skin={skin} />
+          )}
+
+          {visibleClues.length > 0 && (
             <div className="space-y-3">
               <p className="font-pixel text-[0.55rem] text-px-muted">Clues in this scene</p>
-              {cluesHere.map((clue) => (
+              {visibleClues.map((clue) => (
                 <ClueCard
                   key={clue.id}
                   clue={clue}
-                  collected={progress.collectedClueIds.includes(clue.id)}
+                  collected={collected(clue.id)}
                   highlighted={progress.mentor.highlightedClueId === clue.id}
                   sources={view.sources}
                   disabled={busy}
@@ -158,6 +194,15 @@ export function EraPlayer({
                 />
               ))}
             </div>
+          )}
+
+          {view.experiment && viewing === view.experiment.scene && (
+            <ExperimentPanel
+              key={`exp-${chapterId}`}
+              experiment={view.experiment}
+              done={progress.experimentDone}
+              onDone={() => post("progress", { type: "experiment" })}
+            />
           )}
 
           {isMentorScene && (
@@ -192,7 +237,7 @@ export function EraPlayer({
               )}
 
               {progress.finished && view.fieldNotes && (
-                <EraComplete gameId={gameId} notes={view.fieldNotes} />
+                <EraComplete gameId={gameId} notes={view.fieldNotes} ripple={progress.ripple === true} />
               )}
             </div>
           )}
@@ -220,12 +265,7 @@ export function EraPlayer({
         </div>
 
         <aside className="lg:sticky lg:top-6 lg:self-start">
-          <Logbook
-            clues={era.clues}
-            collectedIds={progress.collectedClueIds}
-            highlightedId={progress.mentor.highlightedClueId}
-            sources={view.sources}
-          />
+          <Logbook clues={era.clues} collectedIds={progress.collectedClueIds} highlightedId={progress.mentor.highlightedClueId} sources={view.sources} />
         </aside>
       </div>
     </div>
@@ -272,15 +312,7 @@ function SceneSteps({
   );
 }
 
-function WhatReallyHappened({
-  summary,
-  events,
-  ids,
-}: {
-  summary: string;
-  events: EraView["events"];
-  ids: string[];
-}) {
+function WhatReallyHappened({ summary, events, ids }: { summary: string; events: EraView["events"]; ids: string[] }) {
   const used = events.filter((e) => ids.includes(e.id));
   return (
     <section aria-label="What really happened" className="px-frame space-y-3 bg-px-ink p-5 [--px-b:var(--px-blue)]">
@@ -299,10 +331,24 @@ function WhatReallyHappened({
   );
 }
 
-function EraComplete({ gameId, notes }: { gameId: string; notes: NonNullable<EraView["fieldNotes"]> }) {
+function EraComplete({ gameId, notes, ripple }: { gameId: string; notes: NonNullable<EraView["fieldNotes"]>; ripple: boolean }) {
   return (
     <section aria-label="Era complete" className="px-frame space-y-4 bg-px-ink p-5 [--px-b:var(--px-mint)]">
       <h3 className="font-pixel text-sm leading-relaxed text-px-mint">Era complete!</h3>
+      {ripple ? (
+        <p className="px-frame bg-[#2a2350] p-3 text-xl [--px-b:var(--px-violet)]">
+          <span className="font-pixel text-[0.6rem] text-px-violet">≈ Time ripple</span>
+          <br />
+          The mentor&apos;s question took a few tries, so the future wobbled. Teach Alex this chapter carefully: those ideas start as
+          his weak spots.
+        </p>
+      ) : (
+        <p className="px-frame bg-[#173d30] p-3 text-xl [--px-b:var(--px-mint)]">
+          <span className="font-pixel text-[0.6rem] text-px-mint">✓ Timeline stable</span>
+          <br />
+          You answered the mentor cleanly. History stays on course.
+        </p>
+      )}
       <p className="text-xl">Your field notes are saved. Alex can now be taught this chapter.</p>
       <ul className="space-y-2">
         {notes.map((n) => (

@@ -23,6 +23,7 @@ export async function TimeTravelSection({ game }: { game: Game }) {
         state: status?.state ?? "locked",
         error: status?.error ?? null,
         eraFinished: play.timeTravel[id]?.finished ?? false,
+        ripple: play.timeTravel[id]?.ripple ?? null,
       };
     });
 
@@ -36,7 +37,7 @@ export async function TimeTravelSection({ game }: { game: Game }) {
       </div>
       {/* key: remount with fresh server state after router.refresh() */}
       <Timeline
-        key={nodes.map((n) => `${n.chapterId}:${n.state}:${n.eraFinished}`).join("|")}
+        key={nodes.map((n) => `${n.chapterId}:${n.state}:${n.eraFinished}:${n.ripple}`).join("|")}
         gameId={game.id}
         initialNodes={nodes}
       />

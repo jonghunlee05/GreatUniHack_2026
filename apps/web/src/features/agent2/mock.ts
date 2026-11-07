@@ -64,6 +64,7 @@ export const MOCK_PACK: ChapterPack = {
         dialogue: [{ speaker: "Xavier Bichat", line: "If two different organs fail the same way, what might they share?" }],
         clue_ids: [],
         concept_ids: ["c1"],
+        art: { location: "hospital", view: "city", time: "day", weather: "clear", ambient: "none", props: ["dissection_table", "specimen_jars", "candle"], poses: [{ name: "Xavier Bichat", pose: "think" }] },
       },
       {
         n: 2,
@@ -72,6 +73,7 @@ export const MOCK_PACK: ChapterPack = {
         dialogue: [{ speaker: "Xavier Bichat", line: "The stomach does not answer as one thing. Why would its layers disagree?" }],
         clue_ids: ["k1"],
         concept_ids: ["c1"],
+        art: { location: "study", view: "night_sky", time: "night", weather: "rain", ambient: "flicker", props: ["flask", "quill_paper", "candle", "bookshelf"], poses: [{ name: "Xavier Bichat", pose: "experiment" }] },
       },
       {
         n: 3,
@@ -83,6 +85,7 @@ export const MOCK_PACK: ChapterPack = {
         ],
         clue_ids: ["k2", "k3"],
         concept_ids: ["c1", "c3"],
+        art: { location: "lab", view: "countryside", time: "dusk", weather: "fog", ambient: "steam", props: ["specimen_jars", "microscope", "notebook", "beaker_rack"], poses: [{ name: "Xavier Bichat", pose: "point" }, { name: "Theodor Schwann", pose: "write" }] },
       },
       {
         n: 4,
@@ -91,6 +94,7 @@ export const MOCK_PACK: ChapterPack = {
         dialogue: [],
         clue_ids: ["k4"],
         concept_ids: ["c2", "c3"],
+        art: { location: "lecture_hall", view: "campus", time: "day", weather: "clear", ambient: "none", props: ["chalkboard", "notebook", "books"], poses: [{ name: "Xavier Bichat", pose: "stand" }] },
       },
     ],
     clues: [
@@ -100,6 +104,7 @@ export const MOCK_PACK: ChapterPack = {
         title: "Bichat's acid-test notes",
         text: "Layers from the gut and the airway blister the same way in acid, although they come from different organs.",
         concept_ids: ["c1"],
+        prop: "flask",
       },
       {
         id: "k2",
@@ -107,6 +112,7 @@ export const MOCK_PACK: ChapterPack = {
         title: "Relabelled specimen jars",
         text: "Jars sorted by layer type instead of organ: linings together, supporting layers together, contracting layers together.",
         concept_ids: ["c1", "c2"],
+        prop: "specimen_jars",
       },
       {
         id: "k3",
@@ -114,6 +120,7 @@ export const MOCK_PACK: ChapterPack = {
         title: "Schwann's cell sketch",
         text: "A drawing of animal tissue: many small units, each with a nucleus, packed among fibres.",
         concept_ids: ["c3"],
+        prop: "microscope",
       },
       {
         id: "k4",
@@ -162,6 +169,47 @@ export const MOCK_PACK: ChapterPack = {
       summary:
         "Bichat (c. 1800) classified the body into tissues by dissecting and chemically testing organs, without relying on a microscope. In 1839 Schwann proposed that animals are made of cells, which later explained what tissues are built from. The dialogue in this era is dramatised.",
       event_ids: ["ev1", "ev2"],
+    },
+    mentor_chat: {
+      scene: 1,
+      options: [
+        {
+          ask: "Why not just study each organ on its own?",
+          reply: "Then tell me why the gut lining and the airway lining fall ill alike. What could two different organs share?",
+        },
+        {
+          ask: "What will you test the samples with?",
+          reply: "Heat, drying and acid. Watch which layers react the same way, whichever organ they came from.",
+        },
+      ],
+    },
+    experiment: {
+      scene: 2,
+      template: "sort",
+      title: "Sort Bichat's samples",
+      prompt: "The jars are mixed up. Sort each layer by how it behaves, not by which organ it came from.",
+      prediction: {
+        question: "Will layers from different organs end up in the same group?",
+        options: [
+          "Yes, the same kind of layer turns up in many organs",
+          "No, every organ has its own unique layers",
+        ],
+        correct_index: 0,
+      },
+      data: {
+        groups: ["Lining (epithelial)", "Support (connective)", "Contracting (muscle)", "Signalling (nervous)"],
+        items: [
+          { label: "Gut lining", group: "Lining (epithelial)" },
+          { label: "Airway lining", group: "Lining (epithelial)" },
+          { label: "Cartilage", group: "Support (connective)" },
+          { label: "Bone", group: "Support (connective)" },
+          { label: "Heart wall", group: "Contracting (muscle)" },
+          { label: "Spinal cord", group: "Signalling (nervous)" },
+        ],
+      },
+      reveal:
+        "The gut and airway linings land in the same group: one tissue type, many organs. Four categories cover every organ you sorted.",
+      concept_ids: ["c1", "c2"],
     },
   },
   assessment: {

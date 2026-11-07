@@ -15,6 +15,8 @@ export type TimelineNode = {
   state: State;
   error: string | null;
   eraFinished: boolean;
+  /** true = time ripple, false = stable, null = era not finished */
+  ripple: boolean | null;
 };
 
 /** The overworld: chapters as stops on a timeline. All rules are checked again on the server. */
@@ -63,7 +65,7 @@ export function Timeline({ gameId, initialNodes }: { gameId: string; initialNode
       />
       {nodes.map((node) => (
         <li key={node.chapterId} className="relative flex flex-col items-center text-center">
-          <Marker state={node.state} />
+          <Marker state={node.state} ripple={node.ripple === true} />
           <div
             className={`px-frame mt-4 flex w-full flex-1 flex-col gap-3 p-4 ${
               node.state === "locked"
@@ -112,7 +114,12 @@ function NodeAction({ gameId, node, onGenerate }: { gameId: string; node: Timeli
     case "in_progress":
       return (
         <div className="space-y-2">
-          {node.eraFinished && <p className="text-lg text-px-mint">Era done · teach Alex next</p>}
+          {node.eraFinished &&
+            (node.ripple ? (
+              <p className="text-lg text-px-violet">≈ Time ripple · teach Alex carefully</p>
+            ) : (
+              <p className="text-lg text-px-mint">✓ Timeline stable · teach Alex next</p>
+            ))}
           <PixelButton
             href={href}
             variant={node.eraFinished ? "ghost" : "copper"}
@@ -144,8 +151,15 @@ function NodeAction({ gameId, node, onGenerate }: { gameId: string; node: Timeli
 }
 
 /** The stop on the timeline: padlock, glowing dot, gear, flag or stamp. */
-function Marker({ state }: { state: State }) {
+function Marker({ state, ripple }: { state: State; ripple: boolean }) {
   const base = "relative z-10 flex h-12 w-12 items-center justify-center px-frame";
+  if (ripple && state === "in_progress") {
+    return (
+      <span className={`${base} anim-glow bg-[#2a2350] font-pixel text-base text-px-violet [--px-b:var(--px-violet)]`} aria-hidden>
+        ≈
+      </span>
+    );
+  }
   switch (state) {
     case "locked":
       return (

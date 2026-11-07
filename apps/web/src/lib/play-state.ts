@@ -45,7 +45,12 @@ export type TimeTravelProgress = {
     passed: boolean;
     usedFallback: boolean;
     highlightedClueId: string | null;
+    /** Wrong answers (examiner partly/not yet + wrong options). */
+    wrong: number;
   };
+  experimentDone: boolean;
+  /** Set when the era is finished: true = time ripple (shaky mentor answer), false = stable. */
+  ripple: boolean | null;
   finished: boolean;
 };
 
@@ -62,6 +67,8 @@ export type PlayState = {
   stars?: Record<string, number>;
   /** What Alex knows per chapter and concept, written by the teaching room. Shown on the profile. */
   alexBrain?: Record<string, Record<string, AlexConceptKnowledge>>;
+  /** Concept ids left shaky by a time ripple in each chapter's era: weak spots for teaching Alex. */
+  ripples?: Record<string, string[]>;
 };
 
 /** Mirrors the teaching room's ConceptKnowledge: 0 = not taught … 3 = understood. */

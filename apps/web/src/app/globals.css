@@ -158,6 +158,19 @@ body {
     stroke: var(--px-gold);
     stroke-width: 4;
   }
+
+  /* Time-travel: props hiding a clue */
+  .hotspot {
+    cursor: pointer;
+    outline: none;
+  }
+  .hotspot .hs-ring {
+    opacity: 0;
+  }
+  .hotspot:hover .hs-ring,
+  .hotspot:focus-visible .hs-ring {
+    opacity: 1;
+  }
 }
 
 /* Animations: stepped, like sprites. Only when the user allows motion. */
@@ -213,6 +226,23 @@ body {
     opacity: 0;
   }
 }
+@keyframes px-warp {
+  0% {
+    opacity: 0;
+  }
+  15%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes px-stripes {
+  to {
+    background-position: 0 64px;
+  }
+}
 @keyframes px-flip {
   50% {
     transform: scaleX(-1);
@@ -254,5 +284,11 @@ body {
   }
   .lift {
     transition: transform 120ms steps(2);
+  }
+  .anim-warp {
+    animation: px-warp 1.8s steps(12) both;
+  }
+  .anim-stripes {
+    animation: px-stripes 0.4s steps(4) infinite;
   }
 }

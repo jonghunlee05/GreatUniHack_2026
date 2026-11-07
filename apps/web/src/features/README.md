@@ -84,6 +84,7 @@ Spec: `prompts/agent2-event-generator.md`. Types: `src/lib/chapter-pack.ts`.
 | Knowledge debt (written by the assessment room) | `updatePlayState(game, s => { s.knowledgeDebt["ch1"] = [...] })` | Fed into the next chapter's Agent 2 call |
 | Stars earned (shown on Profile) | `updatePlayState(game, s => { (s.stars ??= {})["ch1"] = 2 })` | 0–3, written by the assessment room |
 | Alex's brain (shown on Profile brain map) | `updatePlayState(game, s => { ((s.alexBrain ??= {})["ch1"] ??= {})["c1"] = { level: 2, misconceptions: [] } })` | Keyed by pack concept id; level 0 not taught → 3 understood. Written by the teaching room |
+| Weak spots from time-travel ("time ripple") | `getPlayState(game).ripples?.["ch1"]` | Concept ids the player struggled with in the era. The teaching room can start these as Alex's weak spots |
 | Mark chapter passed | `updatePlayState(game, s => setChapterState(s, "ch1", "completed"))` | The assessment room should do this on a pass. The next chapter unlocks automatically |
 
 **Unlock rule:** `UNLOCK_NEXT_ON=era` (default for now) unlocks the next chapter when its era is finished. Set `UNLOCK_NEXT_ON=assessment` for the spec rule (unlock on assessment pass) once the assessment room marks chapters `completed`.

@@ -1,7 +1,17 @@
-import { ChapterPackSchema, type Agent2Input, type ChapterPack } from "@/lib/chapter-pack";
+import { ChapterPackSchema, type Agent2Input, type ChapterPack, type Experiment } from "@/lib/chapter-pack";
+import {
+  SKIN_DEFAULT_LOCATION,
+  isAmbient,
+  isLocation,
+  isPose,
+  isProp,
+  isTime,
+  isView,
+  isWeather,
+} from "@/features/time-travel/art/catalog";
 
 export type ValidationResult =
-  | { ok: true; pack: ChapterPack }
+  | { ok: true; pack: ChapterPack; repairs: string[] }
   | { ok: false; errors: string[] };
 
 const SCENE_ORDER = ["problem", "failed_attempts", "breakthrough", "todays_rule"] as const;
@@ -90,9 +100,14 @@ export function validatePack(raw: unknown, input: Agent2Input): ValidationResult
     ...era.mentor_question.hints,
     era.what_really_happened.summary,
   ].join(" ");
-  const years = new Set(eraText.match(/\b(1[0-9]{3}|20[0-9]{2})\b/g) ?? []);
-  for (const year of years) {
-    if (!allowedYears.includes(year)) errors.push(`The era mentions ${year}, which is not in key_events.`);
+  // A year must appear in key_events. A decade ("1750s") is fine if a key event falls in it.
+  const keyYears = (allowedYears.match(/\b(1[0-9]{3}|20[0-9]{2})\b/g) ?? []).map(Number);
+  for (const m of eraText.matchAll(/\b(1[0-9]{3}|20[0-9]{2})(s?)\b/g)) {
+    const year = Number(m[1]);
+    const ok = m[2]
+      ? keyYears.some((k) => k >= year && k < year + 10)
+      : allowedYears.includes(m[1]);
+    if (!ok) errors.push(`The era mentions ${m[0]}, which is not in key_events.`);
   }
 
   // 7. At least one course_material clue with a valid source_id
@@ -152,5 +167,131 @@ export function validatePack(raw: unknown, input: Agent2Input): ValidationResult
     errors.push("mcq_fallback.correct_index is out of range.");
   }
 
-  return errors.length ? { ok: false, errors } : { ok: true, pack };
+  if (errors.length) return { ok: false, errors: [...new Set(errors)] };
+  const repairs: string[] = [];
+  return { ok: true, pack: repairExtras(pack, repairs), repairs };
+}
+
+// ---------------------------------------------------------------------------
+// Optional extras: repaired or dropped, never a reason to reject the chapter.
+// ---------------------------------------------------------------------------
+
+function repairExtras(pack: ChapterPack, repairs: string[]): ChapterPack {
+  const era = pack.era;
+  const castNames = new Set(era.cast.map((c) => c.name));
+  const conceptIds = new Set(pack.concepts.map((c) => c.id));
+
+  const scenes = era.scenes.map((scene) => {
+    if (!scene.art) return scene;
+    const a = scene.art;
+    const props = [...new Set(a.props.filter(isProp))].slice(0, 5);
+    if (props.length !== a.props.length) repairs.push(`Scene ${scene.n}: dropped unknown props.`);
+    return {
+      ...scene,
+      art: {
+        location: isLocation(a.location) ? a.location : SKIN_DEFAULT_LOCATION[era.setting.skin],
+        view: isView(a.view) ? a.view : "none",
+        time: isTime(a.time) ? a.time : "day",
+        weather: isWeather(a.weather) ? a.weather : "clear",
+        ambient: isAmbient(a.ambient) ? a.ambient : "none",
+        props,
+        poses: a.poses.filter((p) => castNames.has(p.name) && isPose(p.pose)),
+      },
+    };
+  });
+
+  // A hidden clue must sit in a prop that is actually drawn in its scene.
+  const clues = era.clues.map((clue) => {
+    if (!clue.prop) return clue;
+    const scene = scenes.find((s) => s.clue_ids.includes(clue.id));
+    if (scene?.art?.props.includes(clue.prop)) return clue;
+    repairs.push(`Clue ${clue.id}: prop "${clue.prop}" not in its scene, shown as a card instead.`);
+    return { ...clue, prop: undefined };
+  });
+
+  let mentor_chat = era.mentor_chat;
+  if (mentor_chat) {
+    const options = mentor_chat.options.filter((o) => o.ask.trim() && o.reply.trim()).slice(0, 3);
+    if (![1, 2].includes(mentor_chat.scene) || options.length === 0) {
+      repairs.push("mentor_chat dropped (needs scene 1 or 2 and at least one option).");
+      mentor_chat = undefined;
+    } else {
+      mentor_chat = { ...mentor_chat, options };
+    }
+  }
+
+  let experiment = era.experiment;
+  if (experiment) {
+    const fixed = repairExperiment(experiment, conceptIds);
+    if (!fixed) repairs.push(`experiment (${experiment.template}) dropped: data didn't fit the template.`);
+    experiment = fixed ?? undefined;
+  }
+
+  return { ...pack, era: { ...era, scenes, clues, mentor_chat, experiment } };
+}
+
+const str = (v: unknown): v is string => typeof v === "string" && v.trim().length > 0;
+const num = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+
+function repairExperiment(exp: Experiment, conceptIds: Set<string>): Experiment | null {
+  if (![2, 3].includes(exp.scene)) exp = { ...exp, scene: 2 };
+  const d = exp.data;
+  let data: Record<string, unknown> | null = null;
+
+  switch (exp.template) {
+    case "slider":
+      if (num(d.min) && num(d.max) && num(d.threshold) && d.min < d.threshold && d.threshold < d.max && str(d.below) && str(d.above)) {
+        data = {
+          label: str(d.label) ? d.label : "Value",
+          unit: str(d.unit) ? d.unit : "",
+          min: d.min,
+          max: d.max,
+          threshold: d.threshold,
+          below: d.below,
+          above: d.above,
+          visual: d.visual === "flow" || d.visual === "heat" ? d.visual : "bar",
+        };
+      }
+      break;
+    case "sort": {
+      const groups = Array.isArray(d.groups) ? d.groups.filter(str).slice(0, 4) : [];
+      const items = Array.isArray(d.items)
+        ? (d.items as { label?: unknown; group?: unknown }[])
+            .filter((i) => str(i?.label) && str(i?.group) && groups.includes(i.group as string))
+            .slice(0, 8)
+        : [];
+      if (groups.length >= 2 && items.length >= 3) data = { groups, items };
+      break;
+    }
+    case "order": {
+      const steps = Array.isArray(d.steps) ? d.steps.filter(str).slice(0, 6) : [];
+      if (steps.length >= 3) data = { steps };
+      break;
+    }
+    case "match": {
+      const pairs = Array.isArray(d.pairs)
+        ? (d.pairs as { left?: unknown; right?: unknown }[]).filter((p) => str(p?.left) && str(p?.right)).slice(0, 5)
+        : [];
+      if (pairs.length >= 3) data = { pairs };
+      break;
+    }
+    case "numeric":
+      if (str(d.question) && num(d.answer)) {
+        data = {
+          question: d.question,
+          answer: d.answer,
+          unit: str(d.unit) ? d.unit : "",
+          tolerance: num(d.tolerance) && d.tolerance > 0 ? d.tolerance : Math.abs(d.answer) * 0.05 || 0.01,
+          hint: str(d.hint) ? d.hint : "",
+        };
+      }
+      break;
+  }
+  if (!data) return null;
+
+  const p = exp.prediction;
+  const prediction =
+    p && p.options.length >= 2 && p.correct_index >= 0 && p.correct_index < p.options.length ? p : undefined;
+
+  return { ...exp, data, prediction, concept_ids: exp.concept_ids.filter((id) => conceptIds.has(id)) };
 }
