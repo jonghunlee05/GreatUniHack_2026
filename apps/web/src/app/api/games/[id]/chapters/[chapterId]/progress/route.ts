@@ -37,6 +37,7 @@ function parseAction(body: unknown): ProgressAction {
   switch (b?.type) {
     case "start":
     case "finish":
+    case "experiment":
       return { type: b.type };
     case "advance":
       if (typeof b.scene === "number") return { type: "advance", scene: b.scene };

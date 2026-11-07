@@ -6,9 +6,20 @@ import type { ClientSource } from "../progress";
 import type { Skin } from "../skins";
 import { PixelButton } from "@/components/pixel/PixelButton";
 import { Portrait } from "./Portrait";
+import { Typewriter } from "./Interactive";
 
 /** One line of dramatised dialogue, with the speaker's portrait. */
-export function DialogueBox({ speaker, line, skin }: { speaker: string; line: string; skin: Skin }) {
+export function DialogueBox({
+  speaker,
+  line,
+  skin,
+  delay = 0,
+}: {
+  speaker: string;
+  line: string;
+  skin: Skin;
+  delay?: number;
+}) {
   return (
     <div className="flex items-start gap-3">
       <Portrait name={speaker} className="h-12 w-auto shrink-0" />
@@ -23,7 +34,9 @@ export function DialogueBox({ speaker, line, skin }: { speaker: string; line: st
             Dramatised
           </span>
         </div>
-        <p className="mt-1 text-xl leading-snug">{line}</p>
+        <p className="mt-1 text-xl leading-snug">
+          <Typewriter text={line} delay={delay} />
+        </p>
       </div>
     </div>
   );

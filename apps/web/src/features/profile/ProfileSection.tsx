@@ -27,6 +27,7 @@ export async function ProfileSection({ game }: { game: Game }) {
           stars: Math.max(0, Math.min(3, play.stars?.[id] ?? 0)),
           concepts: pack?.concepts ?? null,
           brain: play.alexBrain?.[id] ?? {},
+          weak: play.ripples?.[id] ?? [],
         };
       }),
   );
@@ -121,7 +122,7 @@ export async function ProfileSection({ game }: { game: Game }) {
         <Legend />
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {chapters.map((c) => (
-            <BrainColumn key={c.id} week={c.week} title={c.title} concepts={c.concepts} brain={c.brain} />
+            <BrainColumn key={c.id} week={c.week} title={c.title} concepts={c.concepts} brain={c.brain} weak={c.weak} />
           ))}
         </div>
       </section>
@@ -168,6 +169,12 @@ function Legend() {
         </span>
         Misconception
       </li>
+      <li className="flex items-center gap-2 text-lg">
+        <span className="font-pixel text-[0.6rem] text-px-violet" aria-hidden>
+          ≈
+        </span>
+        Weak spot from a time ripple
+      </li>
     </ul>
   );
 }
@@ -177,11 +184,13 @@ function BrainColumn({
   title,
   concepts,
   brain,
+  weak,
 }: {
   week: number;
   title: string;
   concepts: Concept[] | null;
   brain: Record<string, AlexConceptKnowledge>;
+  weak: string[];
 }) {
   return (
     <div className="px-frame space-y-3 bg-px-ink p-4 [--px-b:var(--px-night)]">
@@ -196,6 +205,7 @@ function BrainColumn({
             const k = brain[concept.id];
             const level = LEVELS[k?.level ?? 0];
             const wrong = k?.misconceptions.length ?? 0;
+            const shaky = weak.includes(concept.id);
             return (
               <li
                 key={concept.id}
@@ -204,7 +214,10 @@ function BrainColumn({
                 className={`px-frame relative p-2 ${level.tile}`}
               >
                 <p className="line-clamp-3 text-base leading-snug">{concept.statement}</p>
-                <p className="mt-1 font-pixel text-[0.45rem]">{level.label}</p>
+                <p className="mt-1 font-pixel text-[0.45rem]">
+                  {level.label}
+                  {shaky && <span className="text-px-violet"> · ≈ weak spot</span>}
+                </p>
                 {wrong > 0 && (
                   <span className="absolute right-1 top-1 font-pixel text-[0.6rem] text-px-red" aria-hidden>
                     !
