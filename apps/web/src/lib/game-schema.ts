@@ -27,11 +27,21 @@ export const ChapterSchema = z.object({
     years: z.string().describe('e.g. "1930s" or "1960s-1980s"'),
     problem: z.string(),
   }),
-  ilos: z.array(IloSchema),
+  ilos: z.array(IloSchema).describe("The first ILO is the chapter's main ILO"),
+  /** Real historical events behind this chapter's concepts. Agent 2 may only use these. */
+  keyEvents: z.array(
+    z.object({
+      year: z.string().describe('e.g. "1839" or "c. 1800"'),
+      person: z.string(),
+      event: z.string(),
+    }),
+  ),
   sourceRefs: z.array(
     z.object({
       file: z.string(),
       location: z.string(),
+      page: z.number().int().nullable().describe("First page or slide number, or null"),
+      excerpt: z.string().describe("Short passage from the source that supports this chapter"),
     }),
   ),
 });

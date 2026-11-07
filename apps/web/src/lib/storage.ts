@@ -20,10 +20,29 @@ export async function getGame(id: string): Promise<Game | null> {
   if (!ID_PATTERN.test(id)) return null;
   try {
     const raw = await fs.readFile(path.join(GAMES_DIR, `${id}.json`), "utf8");
-    return JSON.parse(raw) as Game;
+    return normalizeGame(JSON.parse(raw) as Game);
   } catch {
     return null;
   }
+}
+
+/**
+ * Games created before keyEvents / source excerpts existed lack those fields.
+ * Fill safe defaults so the rest of the app can rely on the current shape.
+ */
+function normalizeGame(game: Game): Game {
+  return {
+    ...game,
+    chapters: game.chapters.map((c) => ({
+      ...c,
+      keyEvents: c.keyEvents ?? [],
+      sourceRefs: c.sourceRefs.map((s) => ({
+        ...s,
+        page: s.page ?? null,
+        excerpt: s.excerpt ?? "",
+      })),
+    })),
+  };
 }
 
 export async function listGames(): Promise<Game[]> {

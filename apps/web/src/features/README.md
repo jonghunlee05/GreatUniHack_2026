@@ -69,3 +69,23 @@ generator or Justin-owned pages.
 
 The standalone Python demo remains at the repository root. The browser version
 is the integration target for the Next.js app and needs no Python process.
+
+## Chapter packs (Agent 2) — what the teaching and assessment rooms can read
+
+Agent 2 generates one chapter pack per chapter when the player clicks Generate in Time-travel.
+Spec: `prompts/agent2-event-generator.md`. Types: `src/lib/chapter-pack.ts`.
+
+| Data | Read with | Notes |
+|---|---|---|
+| Chapter pack (concepts, era, **assessment**) | `getPack(gameId, "ch1")` from `src/lib/play-state.ts` | `pack.assessment` = briefing, evidence, Alex's decision + likely mistakes, curveball, scoring |
+| Chapter states | `getPlayState(game).chapters` | `locked → available → generating → ready → in_progress → completed` (+ `failed`) |
+| Field notes (what Alex should be taught) | `getPlayState(game).fieldNotes["ch1"]` | Saved when the player finishes the era |
+| Teaching room unlocked? | `getPlayState(game).teachingUnlocked["ch1"]` | `true` once the era is finished |
+| Knowledge debt (written by the assessment room) | `updatePlayState(game, s => { s.knowledgeDebt["ch1"] = [...] })` | Fed into the next chapter's Agent 2 call |
+| Stars earned (shown on Profile) | `updatePlayState(game, s => { (s.stars ??= {})["ch1"] = 2 })` | 0–3, written by the assessment room |
+| Alex's brain (shown on Profile brain map) | `updatePlayState(game, s => { ((s.alexBrain ??= {})["ch1"] ??= {})["c1"] = { level: 2, misconceptions: [] } })` | Keyed by pack concept id; level 0 not taught → 3 understood. Written by the teaching room |
+| Mark chapter passed | `updatePlayState(game, s => setChapterState(s, "ch1", "completed"))` | The assessment room should do this on a pass. The next chapter unlocks automatically |
+
+**Unlock rule:** `UNLOCK_NEXT_ON=era` (default for now) unlocks the next chapter when its era is finished. Set `UNLOCK_NEXT_ON=assessment` for the spec rule (unlock on assessment pass) once the assessment room marks chapters `completed`.
+
+Chapter ids are `ch<week>` (`chapterIdFor(week)`). Mock mode (`AGENT2_MOCK=true` in `.env.local`) returns a sample MATS23801 pack for free.

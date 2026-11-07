@@ -62,6 +62,21 @@ Home
 - Candidate mechanics: predict-the-failure, mission control (pause / limited hints), curveball constraint, sabotage heist, Alex's planted false statement, short oral defence.
 - Grading: stars tied to understanding (works / caught mistakes early / defended the design).
 
+### 2.6 AI agents and data flow
+
+![AI agents and data flow](docs/agent-architecture.png)
+
+Three agents call Claude. Everything they produce is stored and reused, so tokens are only spent when something new is needed.
+
+| Agent | When it runs | Produces | Used by | Status |
+|---|---|---|---|---|
+| **1 · Curriculum** | Once per game, on upload | Course outline: chapters, ILOs, key events | Agent 2, every screen | Built (`features/new-game/`) |
+| **2 · Events** | When a chapter is opened, then cached | Chapter pack: era, clues, field notes, weekly task material | Time-travel, Assessment room | To do |
+| **3 · Alex** | Live in the teaching room, short replies | Chat replies + updates to `AlexBrain` | Teaching room (chat), Assessment room (reads `AlexBrain`) | To do |
+
+- **Stored data** (course outline, chapter packs, `AlexBrain`) is free to reuse. Load it before calling an agent again.
+- `AlexBrain` is the contract between the teaching room and the assessment room (see section 3).
+
 ---
 
 ## 3. Shared concepts (agree on these first)
