@@ -23,7 +23,9 @@ Example course used for the prototype: **PCB design**.
 
 ## 2. App structure
 
-![App flow](docs/app-flow.png)
+![App flow](docs/diagrams/app-flow.png)
+
+See [the three flowcharts](docs/diagrams/README.md) for the app flow, chapter learning loop and system overview.
 
 ```
 Home
@@ -64,7 +66,7 @@ Home
 
 ### 2.6 AI agents and data flow
 
-![AI agents and data flow](docs/agent-architecture.png)
+![AI agents and data flow](docs/diagrams/system-overview.png)
 
 Three agents call Claude. Everything they produce is stored and reused, so tokens are only spent when something new is needed.
 
