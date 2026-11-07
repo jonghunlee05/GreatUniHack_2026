@@ -3,59 +3,18 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Game } from "@/lib/game-schema";
-import { AlexSprite, type AlexReaction } from "@/components/pixel/AlexSprite";
+import type { AlexReaction } from "@/components/pixel/AlexSprite";
 import { PixelButton } from "@/components/pixel/PixelButton";
-import { PixelPanel, SpeechBubble } from "@/components/pixel/PixelPanel";
+import { PixelPanel } from "@/components/pixel/PixelPanel";
 import { evaluateTeaching } from "@/features/purple-shared/engine";
-import { chapterKey, type BrainState, type KnowledgeLevel, type TeachingMessage } from "@/features/purple-shared/types";
+import { chapterKey, type BrainState, type TeachingMessage } from "@/features/purple-shared/types";
 import { usePurpleState } from "@/features/purple-shared/state";
 import { ChapterRail, chapterProgress, markProgress } from "@/features/purple-shared/progression";
 import { Whiteboard, type ImageSubmission } from "./Whiteboard";
+import { ModeTabs, RoomScene, type ZoneId } from "./RoomScene";
+import { BrainPanel } from "./BrainPanel";
+import { StandupPanel } from "./StandupPanel";
 
-type ZoneId = "blackboard" | "desk" | "sofa";
-// Hotspots in the room scene, Alex's standing spot, and the floating panel title.
-const ZONES: { id: ZoneId; label: string; hint: string; title: string; box: string; alexLeft: string; art: React.ReactNode }[] = [
-  {
-    id: "blackboard", label: "Blackboard", hint: "draw a diagram", title: "BLACKBOARD · DRAW OR SHOW AN IMAGE",
-    box: "left-[4%] top-[12%] h-[42%] w-[32%]", alexLeft: "40%",
-    art: (
-      <span className="absolute inset-0 border-4 border-px-wood bg-[#2f4a3a]">
-        <span className="absolute left-[12%] top-[25%] h-1 w-[45%] bg-px-cream/70" />
-        <span className="absolute left-[12%] top-[45%] h-1 w-[30%] bg-px-cream/70" />
-        <span className="absolute right-[12%] top-[30%] h-6 w-6 border-2 border-px-cream/70" />
-      </span>
-    ),
-  },
-  {
-    id: "desk", label: "Desk", hint: "type and chat", title: "DESK · TEACH BY TEXT",
-    box: "left-[42%] bottom-[12%] h-[30%] w-[22%]", alexLeft: "56%",
-    art: (
-      <span className="absolute inset-0">
-        <span className="absolute inset-x-0 top-[30%] h-[18%] bg-px-wood" />
-        <span className="absolute left-[6%] top-[48%] h-[52%] w-[8%] bg-px-wood-dark" />
-        <span className="absolute right-[6%] top-[48%] h-[52%] w-[8%] bg-px-wood-dark" />
-        <span className="absolute left-[20%] top-[10%] h-[20%] w-[22%] bg-px-cream" />
-        <span className="absolute right-[18%] top-0 h-[30%] w-[14%] bg-px-gold" />
-      </span>
-    ),
-  },
-  {
-    id: "sofa", label: "Sofa", hint: "talk out loud", title: "SOFA · TEACH BY VOICE",
-    box: "right-[4%] bottom-[12%] h-[34%] w-[26%]", alexLeft: "70%",
-    art: (
-      <span className="absolute inset-0">
-        <span className="absolute inset-x-[8%] top-0 h-[45%] bg-[#6b5bb5]" />
-        <span className="absolute inset-x-0 top-[40%] h-[35%] bg-[#7d6cd0]" />
-        <span className="absolute left-0 top-[25%] h-[55%] w-[10%] bg-[#5a4b9e]" />
-        <span className="absolute right-0 top-[25%] h-[55%] w-[10%] bg-[#5a4b9e]" />
-        <span className="absolute left-[10%] bottom-0 h-[25%] w-[6%] bg-px-ink" />
-        <span className="absolute right-[10%] bottom-0 h-[25%] w-[6%] bg-px-ink" />
-      </span>
-    ),
-  },
-];
-
-const LEVELS = ["Not learned", "Recognised", "Understood", "Applied"];
 const REACTIONS: AlexReaction[] = ["curious", "confused", "thinking", "understanding", "got_it"];
 const STRATEGY_LABEL: Record<string, string> = {
   CLARIFY: "CLARIFY", CHALLENGE: "CHALLENGE", EXAMPLE: "EXAMPLE", APPLY: "APPLY", TRANSFER: "TRANSFER",
@@ -81,14 +40,6 @@ function hash(text: string) {
   return (h >>> 0).toString(36);
 }
 
-function LevelPips({ level }: { level: KnowledgeLevel }) {
-  return (
-    <span className="flex gap-1" aria-label={`${LEVELS[level]}, level ${level} of 3`}>
-      {[1, 2, 3].map((pip) => <span key={pip} className={`h-3 w-6 ${pip <= level ? "bg-px-violet" : "bg-px-wall-line"}`} />)}
-    </span>
-  );
-}
-
 export function TeachingRoomSection({ game }: { game: Game }) {
   const router = useRouter();
   const { state, update, ready } = usePurpleState(game);
@@ -105,6 +56,11 @@ export function TeachingRoomSection({ game }: { game: Game }) {
   const [selectedZone, setSelectedZone] = useState<ZoneId>("desk");
   const [unlockedMessage, setUnlockedMessage] = useState("");
   const [openCards, setOpenCards] = useState(false);
+  const [live, setLive] = useState(false);
+  const [bubbleOverride, setBubbleOverride] = useState<string | null>(null);
+  const currentAudio = useRef<HTMLAudioElement | null>(null);
+  const lastSpeech = useRef<Promise<void>>(Promise.resolve());
+  const chatEnd = useRef<HTMLDivElement>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const audioCache = useRef(new Map<string, string>());
   const inflight = useRef(new Set<string>());
@@ -122,6 +78,10 @@ export function TeachingRoomSection({ game }: { game: Game }) {
   const offerTeachBackReplies = lastAlex?.strategy === "SUMMARISE" && !pending;
 
   useEffect(() => {
+    chatEnd.current?.scrollIntoView({ block: "nearest" });
+  }, [messages.length, selectedZone]);
+
+  useEffect(() => {
     callAlex({ command: "status" }).then((r) => r.ok && setStatus(r as unknown as Status)).catch(() => setStatus(null));
   }, []);
 
@@ -133,23 +93,65 @@ export function TeachingRoomSection({ game }: { game: Game }) {
     });
   }
 
-  async function speak(text: string, responseId: string, force = false) {
-    if (!status?.speech || (muted && !force)) return;
-    try {
-      let url = audioCache.current.get(responseId);
-      if (!url) {
-        const r = await callAlex({ command: "speak", text, responseId });
-        if (!r.ok) return; // voice is optional: text stays visible
-        url = `data:audio/mpeg;base64,${r.audioBase64 as string}`;
-        audioCache.current.set(responseId, url);
-      }
-      const audio = new Audio(url);
-      audio.dataset.alex = "1";
-      await audio.play();
-    } catch { /* autoplay blocked or ElevenLabs down: text fallback */ }
+  /** Plays Alex's reply. Resolves when the audio ends (or right away if voice is off), so the stand-up can wait for it. */
+  function speak(text: string, responseId: string, force = false): Promise<void> {
+    const done = (async () => {
+      if (!status?.speech || (muted && !force)) return;
+      try {
+        let url = audioCache.current.get(responseId);
+        if (!url) {
+          const r = await callAlex({ command: "speak", text, responseId });
+          if (!r.ok) return; // voice is optional: text stays visible
+          url = `data:audio/mpeg;base64,${r.audioBase64 as string}`;
+          audioCache.current.set(responseId, url);
+        }
+        const audio = new Audio(url);
+        audio.dataset.alex = "1";
+        currentAudio.current = audio;
+        await new Promise<void>((resolve) => {
+          audio.onended = () => resolve();
+          audio.onerror = () => resolve();
+          audio.onpause = () => resolve();
+          audio.play().catch(() => resolve());
+        });
+      } catch { /* autoplay blocked or ElevenLabs down: text fallback */ }
+    })();
+    lastSpeech.current = done;
+    return done;
+  }
+
+  // ---- Live stand-up helpers (reuse transcribe / teach / speak) ----
+  const voiceOn = Boolean(status?.speech) && !muted;
+  const readingPause = () => new Promise<void>((r) => setTimeout(r, 1800));
+
+  async function greetStandup() {
+    const line = `Stand-up time! Tell me what you know about ${chapter.title}. I'm listening. Pause when you've finished a thought.`;
+    setBubbleOverride(line);
+    await speak(line, `standup-intro-${key}`);
+    if (!voiceOn) await readingPause();
+  }
+
+  async function transcribeAudio(audioBase64: string, mime: string): Promise<string | null> {
+    const r = await callAlex({ command: "transcribe", audioBase64, mime }).catch(() => ({ ok: false, error: "network" }) as const);
+    if (!r.ok) {
+      setError(`Couldn't transcribe (${r.error}).`);
+      return null;
+    }
+    setError("");
+    return String((r as Record<string, unknown>).text ?? "");
+  }
+
+  async function waitForAlex() {
+    await lastSpeech.current;
+    if (!voiceOn) await readingPause();
+  }
+
+  function skipAlex() {
+    currentAudio.current?.pause();
   }
 
   function apply(r: BridgeOk, student?: TeachingMessage) {
+    setBubbleOverride(null);
     const alexMessage: TeachingMessage = {
       id: `alex-${r.result.turn_id}`, role: "alex", text: r.result.alex_reply,
       strategy: r.result.strategy, reaction: r.result.reaction,
@@ -289,136 +291,107 @@ export function TeachingRoomSection({ game }: { game: Game }) {
 
   if (!ready) return <PixelPanel><p>Loading Alex&apos;s memory...</p></PixelPanel>;
 
+  const bubble = pending
+    ? pending === "transcribe" ? "Listening back to what you said…" : "Hmm, let me think…"
+    : bubbleOverride ?? lastAlex?.text ?? "I'm listening. Teach me one cause-and-effect idea at a time.";
+  const selectZone = (zone: ZoneId) => { if (!live) setSelectedZone(zone); };
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[19rem_1fr]">
-      <aside className="space-y-5">
-        <PixelPanel className="[--px-b:var(--px-violet)]">
-          <p className="font-pixel text-[0.6rem] text-px-violet">TEACHING ROOM</p>
-          <p className="mt-4 text-px-muted">Week {chapter.week}</p>
-          <p className="mt-1 text-xl">{chapter.title}</p>
-          <p className="mt-4 text-px-muted">{chapter.ilos[0]?.statement ?? chapter.summary}</p>
-          <div className="mt-4 h-4 bg-px-night" aria-label={`Alex learning progress ${Math.round(progress * 100)}%`}><div className="h-full bg-px-violet" style={{ width: `${Math.round(progress * 100)}%` }} /></div>
-          <p className="mt-2 font-pixel text-[0.55rem] text-px-muted">BRAIN SYNC {Math.round(progress * 100)}%</p>
+    <div className="space-y-6">
+      <header className="space-y-2">
+        <h2 className="font-pixel text-lg leading-relaxed text-px-violet">Teaching room</h2>
+        <p className="text-xl text-px-cream">Week {chapter.week} · {chapter.title}</p>
+        <p className="text-lg text-px-muted">Goal: {chapter.ilos[0]?.statement ?? chapter.summary}</p>
+      </header>
+
+      <ChapterRail game={game} state={state} mode="teaching" currentWeek={chapter.week} onSelect={chooseChapter} />
+
+      {state.repairTarget && (
+        <PixelPanel tone="danger">
+          <p className="font-pixel text-[0.6rem]">REPAIR MISSION</p>
+          <p className="mt-2">Give Alex new evidence for {brain.concepts[state.repairTarget]?.label}. Opening this room did not increase mastery.</p>
         </PixelPanel>
+      )}
+      {status && !status.claude && (
+        <PixelPanel tone="danger">
+          <p className="font-pixel text-[0.6rem]">OFFLINE DEMO</p>
+          <p className="mt-2">No Claude API key found, so Alex uses a simple keyword evaluator. Add ANTHROPIC_API_KEY to apps/web/.env.local and restart.</p>
+        </PixelPanel>
+      )}
+      {notice && <p className="text-px-gold" role="status">{notice}</p>}
 
-        <div className="space-y-3">
-          <h2 className="font-pixel text-[0.65rem] text-px-cream">KNOWLEDGE CARDS</h2>
-          {Object.values(brain.concepts).map((concept) => (
-            <PixelPanel key={concept.conceptId} className={state.repairTarget === concept.conceptId ? "[--px-b:var(--px-gold)]" : "[--px-b:var(--px-wall-line)]"}>
-              <details open={openCards || undefined} data-testid={`card-${concept.conceptId}`}>
-                <summary className="cursor-pointer list-none">
-                  <div className="flex items-start justify-between gap-2"><p className="font-pixel text-[0.58rem] leading-relaxed">{concept.label}</p><span className="text-px-muted">{concept.level}/3</span></div>
-                  <div className="mt-3"><LevelPips level={concept.level} /></div>
-                  {concept.misconceptions.length > 0 && <p className="mt-3 text-px-red">⚠ {concept.misconceptions.at(-1)}</p>}
-                </summary>
-                <div className="mt-3 space-y-2 text-lg">
-                  <p className="font-pixel text-[0.5rem] text-px-muted">{LEVELS[concept.level].toUpperCase()}</p>
-                  {concept.evidence.length > 0 ? (
-                    <div><p className="font-pixel text-[0.5rem] text-px-mint">YOUR WORDS</p>{concept.evidence.slice(-3).map((quote) => <p key={quote} className="border-l-4 border-px-mint pl-2">“{quote}”</p>)}</div>
-                  ) : <p className="text-px-muted">No teaching evidence yet.</p>}
-                  {concept.misconceptions.length > 0 && <div><p className="font-pixel text-[0.5rem] text-px-red">MISCONCEPTIONS</p>{concept.misconceptions.map((m) => <p key={m}>• {m}</p>)}</div>}
-                  {concept.missingPoints.length > 0 && <div><p className="font-pixel text-[0.5rem] text-px-gold">STILL MISSING</p>{concept.missingPoints.map((m) => <p key={m}>• {m}</p>)}</div>}
-                </div>
-              </details>
-            </PixelPanel>
-          ))}
-        </div>
-      </aside>
+      {!chapterState.teachingUnlocked ? (
+        <PixelPanel tone="danger">
+          <p className="font-pixel text-[0.65rem]">🔒 CHAPTER LOCKED</p>
+          <p className="mt-2">Pass the previous chapter&apos;s assessment to unlock Week {chapter.week}.</p>
+        </PixelPanel>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-[1fr_19rem]">
+          <div className="space-y-4">
+            <RoomScene selected={selectedZone} onSelect={selectZone} reaction={reaction} bubble={bubble} live={live} />
+            <ModeTabs selected={selectedZone} onSelect={selectZone} />
 
-      <main className="space-y-5">
-        <ChapterRail game={game} state={state} mode="teaching" currentWeek={chapter.week} onSelect={chooseChapter} />
-        {state.repairTarget && <PixelPanel tone="danger"><p className="font-pixel text-[0.65rem]">REPAIR MISSION</p><p className="mt-2">Give Alex new evidence for {brain.concepts[state.repairTarget]?.label}. Opening this room did not increase mastery.</p></PixelPanel>}
-        {status && !status.claude && <PixelPanel tone="danger"><p className="font-pixel text-[0.6rem]">OFFLINE DEMO</p><p className="mt-2">No Claude API key found, so Alex uses a simple keyword evaluator. Add ANTHROPIC_API_KEY to apps/web/.env.local and restart.</p></PixelPanel>}
-        {notice && <p className="text-px-gold" role="status">{notice}</p>}
-
-        {!chapterState.teachingUnlocked ? (
-          <PixelPanel tone="danger"><p className="font-pixel text-[0.65rem]">🔒 CHAPTER LOCKED</p><p className="mt-2">Pass the previous chapter&apos;s assessment to unlock Week {chapter.week}.</p></PixelPanel>
-        ) : (
-          <>
-            {/* Room scene: click a zone and Alex walks there (CSS transition only). */}
-            <div className="relative h-72 overflow-hidden border-4 border-px-ink bg-px-wall" data-testid="teaching-scene">
-              <div className="absolute inset-x-0 bottom-0 h-16 bg-px-wood-dark" />
-              <div className="absolute inset-x-0 bottom-16 h-1 bg-px-wood" />
-              {ZONES.map((zone) => (
-                <button
-                  key={zone.id}
-                  type="button"
-                  onClick={() => setSelectedZone(zone.id)}
-                  aria-pressed={selectedZone === zone.id}
-                  aria-label={`${zone.label}: ${zone.hint}`}
-                  className={`group absolute ${zone.box} outline-none`}
-                >
-                  {zone.art}
-                  <span className={`absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap font-pixel text-[0.5rem] ${selectedZone === zone.id ? "text-px-gold" : "text-px-muted group-hover:text-px-cream group-focus-visible:text-px-cream"}`}>
-                    {selectedZone === zone.id ? "▼ " : ""}{zone.label.toUpperCase()}
-                  </span>
-                  <span className={`pointer-events-none absolute inset-0 border-4 ${selectedZone === zone.id ? "border-px-gold" : "border-transparent group-hover:border-px-violet group-focus-visible:border-px-violet"}`} />
-                </button>
-              ))}
-              <div
-                className="pointer-events-none absolute bottom-6 z-10 w-16 -translate-x-1/2 transition-[left] duration-700 ease-in-out"
-                style={{ left: ZONES.find((z) => z.id === selectedZone)?.alexLeft }}
-                data-testid="alex-position"
-                data-zone={selectedZone}
-              >
-                <AlexSprite mood={reaction} className="w-16" label={`Alex looks ${reaction.replace("_", " ")}`} />
-              </div>
-            </div>
-
-            <div className="grid items-end gap-5 sm:grid-cols-[9rem_1fr]">
-              <div className="text-center">
-                <p className="font-pixel text-[0.65rem] text-px-violet">ALEX</p>
-                <p className="text-px-muted" data-testid="alex-reaction">{reaction === "got_it" ? "got it!" : reaction}</p>
-              </div>
-              <SpeechBubble>{pending ? "Hmm, let me think…" : lastAlex?.text ?? "I am listening. Teach me one cause-and-effect idea at a time."}</SpeechBubble>
-            </div>
-
-            {/* One floating panel; content switches with the selected zone. */}
-            <div data-testid="zone-panel"><PixelPanel className="relative z-10 shadow-[8px_8px_0_var(--px-night)] [--px-b:var(--px-gold)]">
-              <p className="font-pixel text-[0.6rem] text-px-gold">{ZONES.find((z) => z.id === selectedZone)?.title}</p>
-              <div className="mt-4 space-y-4">
-                {selectedZone === "blackboard" && (
-                  <Whiteboard disabled={!!pending} onSubmit={(image) => teach({ text: image.note, modality: "image", image })} />
-                )}
-
+            <div data-testid="zone-panel">
+              <PixelPanel className="[--px-b:var(--px-gold)]">
                 {selectedZone === "desk" && (
-                  <>
-                    <div className="flex flex-wrap gap-2" role="toolbar" aria-label="Alex actions">
-                      <PixelButton variant="ghost" disabled={!!pending} onClick={() => runAction("challenge")}>Challenge me</PixelButton>
-                      <PixelButton variant="ghost" disabled={!!pending} onClick={() => runAction("teach_back")}>Alex teach-back</PixelButton>
-                      <PixelButton variant="ghost" disabled={!!pending} onClick={() => runAction("give_example")}>Give an example</PixelButton>
-                      <PixelButton variant="ghost" disabled={!!pending} onClick={() => runAction("check_memory")}>Check memory</PixelButton>
-                    </div>
-                    <div className="max-h-[22rem] space-y-4 overflow-y-auto bg-px-night/40 p-3">
+                  <div className="space-y-4">
+                    <div className="max-h-80 space-y-3 overflow-y-auto bg-px-night/40 p-3" aria-label="Conversation with Alex">
+                      {messages.length === 0 && <p className="text-lg text-px-muted">Start by explaining one idea from this chapter. Alex will ask follow-up questions.</p>}
                       {messages.map((message) => (
                         <div key={message.id} className={`flex ${message.role === "student" ? "justify-end" : "justify-start"}`}>
                           <div className={`max-w-[85%] p-3 ${message.role === "student" ? "bg-[#493b70]" : "bg-px-night"}`}>
-                            <p className="font-pixel text-[0.5rem] text-px-muted">
-                              {message.role === "student" ? `MENTOR${message.modality === "voice" ? " · VOICE" : ""}` : "ALEX"}
+                            <p className="font-pixel text-[0.45rem] text-px-muted">
+                              {message.role === "student" ? `YOU${message.modality === "voice" ? " · VOICE" : ""}` : "ALEX"}
                               {message.strategy && <span className="ml-2 text-px-violet">· {STRATEGY_LABEL[message.strategy] ?? message.strategy}</span>}
                             </p>
                             <p className="mt-1 text-xl">{message.text}</p>
                           </div>
                         </div>
                       ))}
+                      <div ref={chatEnd} />
                     </div>
+
                     {offerTeachBackReplies && (
-                      <div className="flex flex-wrap gap-2" aria-label="Respond to Alex's teach-back">
+                      <div className="flex flex-wrap gap-3" aria-label="Respond to Alex's teach-back">
                         <PixelButton onClick={() => teach({ text: "Yes, that's right.", modality: "text" })}>That&apos;s right</PixelButton>
                         <PixelButton variant="ghost" onClick={() => { setDraft("Not quite: "); input.current?.focus(); }}>Correct Alex</PixelButton>
                         <PixelButton variant="ghost" onClick={() => runAction("give_example")}>Another example</PixelButton>
                       </div>
                     )}
+
                     <form onSubmit={submit} className="space-y-3">
-                      <label htmlFor="purple-teaching-input" className="font-pixel text-[0.6rem] text-px-violet">YOUR EXPLANATION</label>
-                      <textarea id="purple-teaching-input" ref={input} value={draft} onChange={(event) => { setDraft(event.target.value); setDraftIsTranscript(false); }} className="px-input px-frame min-h-28 resize-y" placeholder="Explain why it works, not only what it is..." />
-                      <PixelButton type="submit" disabled={!draft.trim() || !!pending}>{pending === "turn" ? "Alex is thinking…" : "Teach Alex"}</PixelButton>
+                      <label htmlFor="purple-teaching-input" className="sr-only">Your explanation</label>
+                      <textarea
+                        id="purple-teaching-input"
+                        ref={input}
+                        value={draft}
+                        onChange={(event) => { setDraft(event.target.value); setDraftIsTranscript(false); }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); if (draft.trim() && !pending) void teach({ text: draft, modality: draftIsTranscript ? "voice" : "text" }); }
+                        }}
+                        className="px-input px-frame min-h-24 resize-y"
+                        placeholder="Explain why it works, not only what it is… (Enter to send)"
+                      />
+                      <div className="flex flex-wrap items-center gap-3">
+                        <PixelButton type="submit" disabled={!draft.trim() || !!pending}>{pending === "turn" ? "Alex is thinking…" : "Teach Alex"}</PixelButton>
+                        <span className="text-lg text-px-muted">or ask Alex to:</span>
+                        <div className="flex flex-wrap gap-2" role="toolbar" aria-label="Alex actions">
+                          <ActionChip disabled={!!pending} onClick={() => runAction("teach_back")}>Teach it back</ActionChip>
+                          <ActionChip disabled={!!pending} onClick={() => runAction("give_example")}>Give an example</ActionChip>
+                          <ActionChip disabled={!!pending} onClick={() => runAction("challenge")}>Challenge me</ActionChip>
+                          <ActionChip disabled={!!pending} onClick={() => runAction("check_memory")}>Check memory</ActionChip>
+                        </div>
+                      </div>
                     </form>
-                  </>
+                  </div>
+                )}
+
+                {selectedZone === "blackboard" && (
+                  <Whiteboard disabled={!!pending} onSubmit={(image) => teach({ text: image.note, modality: "image", image })} />
                 )}
 
                 {selectedZone === "sofa" && (
-                  <>
+                  <div className="space-y-4">
                     <div className="flex flex-wrap gap-3">
                       <PixelButton disabled={(!status?.transcription && !recording) || (!!pending && !recording)} onClick={toggleRecording} title={status?.transcription ? undefined : "Add ELEVENLABS_API_KEY to enable voice"}>
                         {recording ? "⏹ Stop recording" : pending === "transcribe" ? "Transcribing…" : "🎙 Record explanation"}
@@ -427,23 +400,32 @@ export function TeachingRoomSection({ game }: { game: Game }) {
                     </div>
                     {!status?.transcription && <p className="text-px-muted">Voice needs ELEVENLABS_API_KEY. You can still type below.</p>}
                     <form onSubmit={submit} className="space-y-3">
-                      <label htmlFor="purple-voice-transcript" className="font-pixel text-[0.6rem] text-px-violet">REVIEW YOUR TRANSCRIPT</label>
+                      <label htmlFor="purple-voice-transcript" className="font-pixel text-[0.55rem] text-px-violet">CHECK YOUR TRANSCRIPT</label>
                       <textarea id="purple-voice-transcript" ref={input} value={draft} onChange={(event) => setDraft(event.target.value)} className="px-input px-frame min-h-24 resize-y" placeholder="Record, then fix any mistakes before sending…" />
                       <PixelButton type="submit" disabled={!draft.trim() || !!pending}>{pending === "turn" ? "Alex is thinking…" : "Send to Alex"}</PixelButton>
                     </form>
-                    {lastAlex && (
-                      <div className="bg-px-night p-3">
-                        <p className="font-pixel text-[0.5rem] text-px-muted">ALEX&apos;S LAST REPLY</p>
-                        <p className="mt-1 text-xl">{lastAlex.text}</p>
-                        {status?.speech && lastAlex.strategy && !lastAlex.id.startsWith("alex-local") && (
-                          <PixelButton variant="ghost" className="mt-2" onClick={() => speak(lastAlex.text, lastAlex.id.slice(5), true)}>▶ Play Alex&apos;s reply</PixelButton>
-                        )}
-                      </div>
+                    {lastAlex && status?.speech && lastAlex.strategy && !lastAlex.id.startsWith("alex-local") && (
+                      <PixelButton variant="ghost" onClick={() => speak(lastAlex.text, lastAlex.id.slice(5), true)}>▶ Replay Alex&apos;s last reply</PixelButton>
                     )}
-                  </>
+                  </div>
                 )}
-              </div>
-            </PixelPanel></div>
+
+                {selectedZone === "standup" && (
+                  <StandupPanel
+                    available={Boolean(status?.transcription)}
+                    speechOn={voiceOn}
+                    messages={messages}
+                    busy={!!pending}
+                    greet={greetStandup}
+                    transcribe={transcribeAudio}
+                    teachLive={(text) => teach({ text, modality: "voice" })}
+                    waitForAlex={waitForAlex}
+                    skipAlex={skipAlex}
+                    onLiveChange={setLive}
+                  />
+                )}
+              </PixelPanel>
+            </div>
             {error && <p className="text-px-red" role="alert">{error}</p>}
 
             <div className="flex flex-wrap items-center justify-end gap-3">
@@ -451,12 +433,30 @@ export function TeachingRoomSection({ game }: { game: Game }) {
               {chapterState.teachingCompleted ? (
                 <PixelButton size="lg" onClick={() => router.push(`/games/${game.id}/assessment-room`)}>Go to Assessment → Week {chapter.week}</PixelButton>
               ) : (
-                <PixelButton size="lg" onClick={finishTeachingChapter}>Finish Teaching Chapter</PixelButton>
+                <PixelButton size="lg" onClick={finishTeachingChapter} disabled={live}>Finish Teaching Chapter</PixelButton>
               )}
             </div>
-          </>
-        )}
-      </main>
+          </div>
+
+          <aside className="lg:sticky lg:top-6 lg:self-start">
+            <BrainPanel brain={brain} progress={progress} repairTarget={state.repairTarget} openAll={openCards} />
+          </aside>
+        </div>
+      )}
     </div>
+  );
+}
+
+/** Small secondary button for Alex's actions. */
+function ActionChip({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="px-frame m-1 bg-px-wall-line px-2 py-1 text-lg text-px-cream [--px-b:var(--px-ink)] hover:text-px-gold disabled:opacity-50"
+    >
+      {children}
+    </button>
   );
 }
