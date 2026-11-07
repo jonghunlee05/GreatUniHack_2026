@@ -1,0 +1,35 @@
+{
+  "chapter_id": "pcb_chapter",
+  "task_id": "pcb_motion_fault",
+  "title": "The Moving Board Mystery",
+  "scenario": "A sensor board reports correctly on the bench but loses its signal whenever its cable or enclosure is moved.",
+  "learning_objectives_tested": ["pcb.1"],
+  "required_concepts": ["solder_fatigue", "strain_relief"],
+  "evidence_cards": [
+    {"id": "movement", "title": "Movement log", "detail": "Signal loss occurs within one second of cable movement and recovers when movement stops.", "source_ref": "pcb_notes_section_4"},
+    {"id": "microcrack", "title": "Magnified joint", "detail": "A fine ring-shaped crack is visible around the connector pin.", "source_ref": "pcb_notes_section_4"},
+    {"id": "firmware", "title": "Firmware version", "detail": "The same firmware has run for six months without a recorded crash.", "source_ref": "task_context"},
+    {"id": "colour", "title": "Enclosure colour", "detail": "The enclosure is purple ABS plastic.", "source_ref": "task_context"}
+  ],
+  "relevant_evidence_ids": ["movement", "microcrack"],
+  "allowed_actions": [
+    {"id": "repair_and_relieve", "label": "Repair the joint and add strain relief"},
+    {"id": "replace_firmware", "label": "Replace the firmware"},
+    {"id": "ignore_motion", "label": "Ignore movement and retest stationary"}
+  ],
+  "correct_action": "repair_and_relieve",
+  "misconception_linked_actions": {
+    "If a circuit works while stationary, solder joints cannot be the problem": "replace_firmware",
+    "More solder always removes mechanical stress": "ignore_motion"
+  },
+  "success_conditions": ["Connect the movement-correlated fault to the cracked joint", "Reduce future cable force at the joint"],
+  "curveball": {
+    "scenario": "After repair, the board is installed on a vibrating platform. The connector sees repeated cable pull unless it is mechanically supported.",
+    "correct_action": "repair_and_relieve",
+    "expected_reasoning": "Repair restores continuity; strain relief prevents cable forces from repeating the same fatigue mechanism.",
+    "required_concepts": ["strain_relief"]
+  },
+  "expected_reasoning": "Movement-correlated loss plus a visible microcrack supports a fatigued joint; strain relief addresses the mechanical cause.",
+  "source_references": ["pcb_notes_section_4"],
+  "answer_explanation": "The relevant observations support repairing the cracked joint and preventing recurring cable stress."
+}

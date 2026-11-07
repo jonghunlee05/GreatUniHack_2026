@@ -1,0 +1,31 @@
+{
+  "game_id": "pcb_demo",
+  "chapter_id": "pcb_chapter",
+  "title": "When Movement Breaks a PCB",
+  "subject": "Electrical engineering",
+  "summary": "Diagnose intermittent PCB faults caused by mechanical stress.",
+  "learning_objectives": [
+    {"id": "pcb.1", "text": "Explain how mechanical stress creates intermittent solder-joint faults"}
+  ],
+  "concepts": [
+    {
+      "id": "solder_fatigue",
+      "label": "Solder-joint fatigue",
+      "reference_explanation": "Repeated board flex concentrates mechanical stress at solder joints, producing microcracks and intermittent electrical continuity when the board moves.",
+      "key_points": [
+        "Repeated board flex concentrates mechanical stress at solder joints",
+        "Microcracks can create intermittent electrical continuity during movement"
+      ],
+      "common_misconceptions": ["If a circuit works while stationary, solder joints cannot be the problem"],
+      "source_ref": "pcb_notes_section_4"
+    },
+    {
+      "id": "strain_relief",
+      "label": "Strain relief",
+      "reference_explanation": "Strain relief redirects cable forces away from solder joints and reduces repeated flex at the electrical connection.",
+      "key_points": ["Strain relief redirects cable forces away from solder joints"],
+      "common_misconceptions": ["More solder always removes mechanical stress"],
+      "source_ref": "pcb_notes_section_4"
+    }
+  ]
+}

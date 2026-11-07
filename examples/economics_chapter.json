@@ -1,0 +1,28 @@
+{
+  "game_id": "economics_demo",
+  "chapter_id": "economics_chapter",
+  "title": "Price Ceilings and Shortages",
+  "subject": "Economics",
+  "summary": "Reason from changes in quantity supplied and demanded under a binding price ceiling.",
+  "learning_objectives": [
+    {"id": "econ.1", "text": "Apply supply-and-demand reasoning to a binding price ceiling"}
+  ],
+  "concepts": [
+    {
+      "id": "binding_ceiling",
+      "label": "Binding price ceiling",
+      "reference_explanation": "A price ceiling below equilibrium is binding: quantity demanded rises while quantity supplied falls, producing a shortage.",
+      "key_points": ["A ceiling below equilibrium is binding", "Quantity demanded exceeds quantity supplied and creates a shortage"],
+      "common_misconceptions": ["A lower legal price always makes the product available to more people"],
+      "source_ref": "microeconomics_week_3"
+    },
+    {
+      "id": "supply_response",
+      "label": "Supply response",
+      "reference_explanation": "Producer incentives affect quantity supplied, so a subsidy can shift supply and change the size of a shortage.",
+      "key_points": ["Producer incentives can change quantity supplied"],
+      "common_misconceptions": ["Supply never changes after a policy"],
+      "source_ref": "microeconomics_week_3"
+    }
+  ]
+}

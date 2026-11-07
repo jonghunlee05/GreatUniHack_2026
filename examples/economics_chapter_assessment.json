@@ -1,0 +1,35 @@
+{
+  "chapter_id": "economics_chapter",
+  "task_id": "rent_ceiling_mission",
+  "title": "The Rental Market Signal",
+  "scenario": "A city caps rent below the previous market-clearing level. Mission Control must explain the queues for available flats.",
+  "learning_objectives_tested": ["econ.1"],
+  "required_concepts": ["binding_ceiling", "supply_response"],
+  "evidence_cards": [
+    {"id": "quantities", "title": "Market survey", "detail": "At the capped rent, 8,000 households seek flats while owners offer 5,000.", "source_ref": "microeconomics_week_3"},
+    {"id": "withdrawals", "title": "Landlord response", "detail": "Some owners convert long-term rentals to other uses after the cap.", "source_ref": "microeconomics_week_3"},
+    {"id": "weather", "title": "Weather report", "detail": "Rainfall was typical for the season.", "source_ref": "task_context"},
+    {"id": "logo", "title": "Campaign logo", "detail": "The policy campaign used a blue logo.", "source_ref": "task_context"}
+  ],
+  "relevant_evidence_ids": ["quantities", "withdrawals"],
+  "allowed_actions": [
+    {"id": "identify_shortage", "label": "Identify a shortage and monitor supply incentives"},
+    {"id": "declare_abundance", "label": "Declare that lower prices created abundance"},
+    {"id": "ignore_supply", "label": "Assume supply cannot respond"}
+  ],
+  "correct_action": "identify_shortage",
+  "misconception_linked_actions": {
+    "A lower legal price always makes the product available to more people": "declare_abundance",
+    "Supply never changes after a policy": "ignore_supply"
+  },
+  "success_conditions": ["Compare quantity demanded with quantity supplied", "Account for producer response"],
+  "curveball": {
+    "scenario": "The city adds a construction subsidy. New rental supply may enter, so the shortage must be reassessed rather than assumed unchanged.",
+    "correct_action": "identify_shortage",
+    "expected_reasoning": "The subsidy changes producer incentives and potentially quantity supplied; collect new quantity data.",
+    "required_concepts": ["supply_response"]
+  },
+  "expected_reasoning": "Because quantity demanded exceeds quantity supplied at the capped price, the market has a shortage.",
+  "source_references": ["microeconomics_week_3"],
+  "answer_explanation": "The quantity evidence establishes a shortage, while owner withdrawals show a supply response."
+}
