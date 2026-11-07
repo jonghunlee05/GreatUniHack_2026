@@ -33,7 +33,7 @@ from .alex_brain import (
 )
 from .alex_engine import APPLICATION_MARKERS, _phrase_hit, _semantic_overlap, _terms
 from .alex_media import env_value
-from .alex_prompts import ACTION_PROMPTS, SYSTEM_PROMPT, chapter_block, turn_prompt
+from .alex_prompts import ACTION_PROMPTS, SYSTEM_PROMPT, chapter_block, length_rule, turn_prompt
 from .alex_schemas import (
     QUALITIES,
     WEAK_QUALITIES,
@@ -137,7 +137,9 @@ class ClaudeEvaluator:
 
     def say(self, chapter: Chapter, instruction: str) -> str:
         """One short in-character line for a toolbar action (same cached prefix)."""
-        line = self._parse(chapter, [{"type": "text", "text": instruction}], AlexLine)
+        rule = length_rule()
+        text = f"{instruction}\n{rule}" if rule else instruction
+        line = self._parse(chapter, [{"type": "text", "text": text}], AlexLine)
         return line.alex_reply.strip()
 
     def _parse(self, chapter: Chapter, content: list[dict], schema: type) -> Any:

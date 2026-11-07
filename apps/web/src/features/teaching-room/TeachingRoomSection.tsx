@@ -57,6 +57,12 @@ export function TeachingRoomSection({ game }: { game: Game }) {
   const [unlockedMessage, setUnlockedMessage] = useState("");
   const [openCards, setOpenCards] = useState(false);
   const [live, setLive] = useState(false);
+  const [talk, setTalk] = useState<TalkLevel>(() => {
+    try {
+      const v = typeof window !== "undefined" ? window.localStorage.getItem("teachback:alex:length") : null;
+      return v === "short" || v === "chatty" ? v : "normal";
+    } catch { return "normal"; }
+  });
   const [bubbleOverride, setBubbleOverride] = useState<string | null>(null);
   const currentAudio = useRef<HTMLAudioElement | null>(null);
   const lastSpeech = useRef<Promise<void>>(Promise.resolve());
@@ -196,7 +202,7 @@ export function TeachingRoomSection({ game }: { game: Game }) {
     };
     try {
       const r = await callAlex({
-        command: "turn", gameId: game.id, chapterWeek: chapter.week, alexState, turnId,
+        command: "turn", gameId: game.id, chapterWeek: chapter.week, alexState, turnId, replyLength: talk,
         message: text, modality: submission.modality,
         imageBase64: submission.image?.base64, imageMediaType: submission.image?.mediaType,
         history: messages.slice(-6).map((m) => ({ role: m.role, text: m.text })),
@@ -231,7 +237,7 @@ export function TeachingRoomSection({ game }: { game: Game }) {
     const turnId = `${game.id}-${key}-${messages.length}-${action}`;
     setPending(action); setError("");
     try {
-      const r = await callAlex({ command: "action", action, gameId: game.id, chapterWeek: chapter.week, alexState, turnId });
+      const r = await callAlex({ command: "action", action, gameId: game.id, chapterWeek: chapter.week, alexState, turnId, replyLength: talk });
       if (r.ok) {
         apply(r as unknown as BridgeOk);
         if (action === "check_memory") setOpenCards(true);
@@ -333,7 +339,16 @@ export function TeachingRoomSection({ game }: { game: Game }) {
         <div className="grid gap-6 lg:grid-cols-[1fr_19rem]">
           <div className="space-y-4">
             <RoomScene selected={selectedZone} onSelect={selectZone} reaction={reaction} bubble={bubble} live={live} />
-            <ModeTabs selected={selectedZone} onSelect={selectZone} />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <ModeTabs selected={selectedZone} onSelect={selectZone} />
+              <TalkSelector
+                value={talk}
+                onChange={(v) => {
+                  setTalk(v);
+                  try { window.localStorage.setItem("teachback:alex:length", v); } catch { /* ignore */ }
+                }}
+              />
+            </div>
 
             <div data-testid="zone-panel">
               <PixelPanel className="[--px-b:var(--px-gold)]">
@@ -447,6 +462,37 @@ export function TeachingRoomSection({ game }: { game: Game }) {
           </aside>
         </div>
       )}
+    </div>
+  );
+}
+
+type TalkLevel = "short" | "normal" | "chatty";
+
+/** How much Alex talks: sent with every turn and action, applied in Agent 3's prompt. */
+function TalkSelector({ value, onChange }: { value: TalkLevel; onChange: (v: TalkLevel) => void }) {
+  const options: { v: TalkLevel; label: string; hint: string }[] = [
+    { v: "short", label: "Short", hint: "one sentence and a question" },
+    { v: "normal", label: "Normal", hint: "under ~35 words" },
+    { v: "chatty", label: "Chatty", hint: "up to 3 sentences" },
+  ];
+  return (
+    <div role="radiogroup" aria-label="How much Alex talks" className="flex items-center gap-2">
+      <span className="font-pixel text-[0.5rem] text-px-muted">ALEX TALKS</span>
+      {options.map((o) => (
+        <button
+          key={o.v}
+          type="button"
+          role="radio"
+          aria-checked={value === o.v}
+          title={o.hint}
+          onClick={() => onChange(o.v)}
+          className={`px-frame m-1 px-2 py-1 font-pixel text-[0.5rem] ${
+            value === o.v ? "bg-px-ink text-px-violet [--px-b:var(--px-violet)]" : "bg-px-wall-line text-px-muted hover:text-px-cream [--px-b:var(--px-ink)]"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
     </div>
   );
 }
