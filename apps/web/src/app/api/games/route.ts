@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
-import { generateGame, GeneratorError } from "@/lib/generator";
-import { ingestFile, IngestError, MAX_TOTAL_BYTES } from "@/lib/ingest";
+import { generateGame, GeneratorError } from "@/features/new-game/generator";
+import { ingestFile, IngestError, MAX_TOTAL_BYTES } from "@/features/new-game/ingest";
 import { saveGame } from "@/lib/storage";
 import type { Game } from "@/lib/game-schema";
 

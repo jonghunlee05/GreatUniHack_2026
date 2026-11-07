@@ -88,29 +88,39 @@ Home
 
 ---
 
-## 5. Proposed repo structure
+## 5. Repo structure
 
 ```
 /
 ├── README.md
-├── docs/
-│   ├── concept.md            # full idea, pitch, learning science
-│   └── data-model.md         # Game, Chapter, AlexBrain, Attempt, Badge
-├── apps/web/                 # frontend
-│   └── src/
-│       ├── pages/home
-│       ├── pages/profile
-│       ├── pages/time-travel
-│       ├── pages/teaching-room
-│       └── pages/assessment-room
-├── services/
-│   ├── ingest/               # upload + parse course materials
-│   ├── chapters/             # generate eras/chapters (time-travel)
-│   ├── alex/                 # Alex agent + AlexBrain
-│   └── assessment/           # tasks, simulation, grading
-├── prompts/                  # versioned system prompts (Alex, mentor, validator)
-└── tests/
+├── docs/                         # diagrams and design notes
+├── prompts/                      # versioned system prompts, one folder per agent
+│   └── game-generator/skills.md  # (later: alex/, mentor/, validator/)
+└── apps/web/                     # Next.js app
+    ├── data/games/               # generated games as JSON (gitignored)
+    └── src/
+        ├── app/                  # routes only: thin pages that load data
+        │   ├── page.tsx                  # Home
+        │   ├── new/                      # New game (upload)
+        │   ├── api/games/                # POST: generate a game
+        │   └── games/[id]/
+        │       ├── layout.tsx            # game title + section tabs
+        │       ├── page.tsx              # hub: the 4 sections
+        │       ├── profile/
+        │       ├── time-travel/
+        │       ├── teaching-room/
+        │       └── assessment-room/
+        ├── features/             # one folder per section: UI, logic, Claude calls
+        │   ├── new-game/         # Justin: ingest + generator
+        │   ├── profile/          # Justin
+        │   ├── time-travel/      # Justin
+        │   ├── teaching-room/    # Shasha
+        │   └── assessment-room/  # Shasha
+        ├── components/           # UI shared across sections
+        └── lib/                  # shared types, storage, section list
 ```
+
+See `apps/web/src/features/README.md` for how a section is wired and where to put new code.
 
 ---
 
@@ -173,9 +183,10 @@ What's built so far (Justin):
 | Part | Where |
 |---|---|
 | Home: list of games + "New game" | `apps/web/src/app/page.tsx` |
-| Upload course materials (PDF, .pptx, .txt/.md) | `apps/web/src/app/new/page.tsx`, `apps/web/src/lib/ingest.ts` |
-| AI game generator: maps the course into chapters + writes ILOs | `apps/web/src/app/api/games/route.ts`, `apps/web/src/lib/generator.ts` |
+| Upload course materials (PDF, .pptx, .txt/.md) | `apps/web/src/app/new/page.tsx`, `apps/web/src/features/new-game/ingest.ts` |
+| AI game generator: maps the course into chapters + writes ILOs | `apps/web/src/app/api/games/route.ts`, `apps/web/src/features/new-game/` |
 | Generator instructions (`skills.md`) | `prompts/game-generator/skills.md` |
 | Game / Chapter / ILO schema | `apps/web/src/lib/game-schema.ts` |
+| Game hub: Profile, Time-travel, Teaching room, Assessment room (placeholders for now) | `apps/web/src/app/games/[id]/`, `apps/web/src/features/<section>/` |
 
 Generated games are saved as JSON in `apps/web/data/games/`, which is gitignored.
