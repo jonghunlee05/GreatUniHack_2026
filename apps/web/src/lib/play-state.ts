@@ -5,6 +5,7 @@ import type { Game } from "./game-schema";
 import {
   ChapterPackSchema,
   chapterIdFor,
+  type Agent2Input,
   type ChapterPack,
   type FieldNote,
   type KnowledgeDebt,
@@ -163,4 +164,20 @@ export async function savePack(gameId: string, pack: ChapterPack): Promise<void>
   const file = packPath(gameId, pack.chapter_id);
   await fs.mkdir(path.dirname(file), { recursive: true });
   await fs.writeFile(file, JSON.stringify(pack, null, 2), { flag: "wx" });
+}
+
+/** The Agent 2 input a pack was generated from (needed to resolve source ids → file + page). */
+export async function savePackInput(gameId: string, chapterId: string, input: Agent2Input): Promise<void> {
+  const file = packPath(gameId, chapterId).replace(/\.json$/, ".input.json");
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  await fs.writeFile(file, JSON.stringify(input, null, 2));
+}
+
+export async function getPackInput(gameId: string, chapterId: string): Promise<Agent2Input | null> {
+  try {
+    const file = packPath(gameId, chapterId).replace(/\.json$/, ".input.json");
+    return JSON.parse(await fs.readFile(file, "utf8")) as Agent2Input;
+  } catch {
+    return null;
+  }
 }

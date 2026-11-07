@@ -7,6 +7,7 @@ import { ChapterPackSchema, chapterIdFor, type Agent2Input, type ChapterPack } f
 import {
   getPack,
   savePack,
+  savePackInput,
   setChapterState,
   updatePlayState,
   type ChapterState,
@@ -68,7 +69,10 @@ export async function generateChapter(game: Game, chapterId: string): Promise<Ge
   });
 
   try {
-    const pack = MOCK() ? await runMock(game, chapterId) : await runReal(game, chapterId, chapter.week);
+    const { pack, input } = MOCK()
+      ? await runMock(game, chapterId)
+      : await runReal(game, chapterId, chapter.week);
+    await savePackInput(game.id, chapterId, input);
     await savePack(game.id, pack);
     await updatePlayState(game, (s) => setChapterState(s, chapterId, "ready"));
     return { state: "ready" };
@@ -81,7 +85,9 @@ export async function generateChapter(game: Game, chapterId: string): Promise<Ge
 }
 
 /** Mock mode: the hand-written MATS23801 pack, validated, no API call. */
-async function runMock(game: Game, chapterId: string): Promise<ChapterPack> {
+type RunResult = { pack: ChapterPack; input: Agent2Input };
+
+async function runMock(game: Game, chapterId: string): Promise<RunResult> {
   await new Promise((r) => setTimeout(r, 1500)); // let the loading animation show
   const result = validatePack(MOCK_PACK, MOCK_INPUT);
   await logTokens({
@@ -95,10 +101,10 @@ async function runMock(game: Game, chapterId: string): Promise<ChapterPack> {
     mock: true,
   });
   if (!result.ok) throw new GenerateError(`Mock pack failed validation: ${result.errors[0]}`, 500);
-  return { ...result.pack, chapter_id: chapterId };
+  return { pack: { ...result.pack, chapter_id: chapterId }, input: MOCK_INPUT };
 }
 
-async function runReal(game: Game, chapterId: string, week: number): Promise<ChapterPack> {
+async function runReal(game: Game, chapterId: string, week: number): Promise<RunResult> {
   const prevChapter = game.chapters
     .filter((c) => c.week < week)
     .sort((a, b) => b.week - a.week)[0];
@@ -178,7 +184,7 @@ async function runReal(game: Game, chapterId: string, week: number): Promise<Cha
       note: result.ok ? undefined : result.errors.slice(0, 3).join(" | "),
     });
 
-    if (result.ok) return { ...result.pack, chapter_id: chapterId };
+    if (result.ok) return { pack: { ...result.pack, chapter_id: chapterId }, input };
     lastErrors = result.errors;
   }
 
