@@ -26,8 +26,11 @@ function overlap(left: string, right: string) {
 export function evaluateTeaching(chapter: Chapter, brain: BrainState, text: string) {
   const entries = Object.values(brain.concepts);
   const selected = entries.reduce((best, item) => {
-    const objective = chapter.ilos.filter((ilo) => ilo.keyConcepts.includes(item.label)).map((ilo) => ilo.statement).join(" ");
-    return overlap(`${item.label} ${objective}`, text) > overlap(best.label, text) ? item : best;
+    const score = (candidate: typeof item) => {
+      const objective = chapter.ilos.filter((ilo) => ilo.keyConcepts.includes(candidate.label)).map((ilo) => ilo.statement).join(" ");
+      return overlap(candidate.label, text) * 3 + overlap(objective, text);
+    };
+    return score(item) > score(best) ? item : best;
   }, entries[0]);
   const previous = selected.level;
   const lower = text.toLowerCase();
