@@ -23,6 +23,8 @@ Example course used for the prototype: **PCB design**.
 
 ## 2. App structure
 
+![App flow](docs/app-flow.png)
+
 ```
 Home
  └── [+] New game
