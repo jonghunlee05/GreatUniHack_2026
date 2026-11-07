@@ -1,13 +1,14 @@
 import type { Game } from "@/lib/game-schema";
-import { chapterIdFor, type Concept } from "@/lib/chapter-pack";
-import { getPack, getPlayState, type AlexConceptKnowledge } from "@/lib/play-state";
+import { chapterIdFor } from "@/lib/chapter-pack";
+import { getPack, getPlayState } from "@/lib/play-state";
 import { AlexSprite } from "@/components/pixel/AlexSprite";
 import { PixelStar } from "@/components/pixel/PixelStar";
+import { BrainMap } from "./BrainMap";
 
 /**
  * Profile (owner: Justin): course progress, stars per chapter, Alex's brain map.
- * Stars and Alex's knowledge are written by the assessment and teaching rooms
- * into the play state (`stars`, `alexBrain`); until then they show as zero / not taught.
+ * Stars come from the assessment room (play state). Alex's brain map reads the
+ * teaching room's own saved brain, so it updates as you teach.
  */
 export async function ProfileSection({ game }: { game: Game }) {
   const play = await getPlayState(game);
@@ -25,9 +26,8 @@ export async function ProfileSection({ game }: { game: Game }) {
           eraFinished: play.timeTravel[id]?.finished ?? false,
           passed: play.chapters[id]?.state === "completed",
           stars: Math.max(0, Math.min(3, play.stars?.[id] ?? 0)),
-          concepts: pack?.concepts ?? null,
-          brain: play.alexBrain?.[id] ?? {},
-          weak: play.ripples?.[id] ?? [],
+          // Concepts a time ripple left shaky in this chapter's era (pack concept statements).
+          weak: (play.ripples?.[id] ?? []).map((cid) => pack?.concepts.find((k) => k.id === cid)?.statement ?? cid),
         };
       }),
   );
@@ -119,12 +119,7 @@ export async function ProfileSection({ game }: { game: Game }) {
             </p>
           </div>
         </div>
-        <Legend />
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {chapters.map((c) => (
-            <BrainColumn key={c.id} week={c.week} title={c.title} concepts={c.concepts} brain={c.brain} weak={c.weak} />
-          ))}
-        </div>
+        <BrainMap game={game} weakSpots={Object.fromEntries(chapters.map((c) => [c.week, c.weak]))} />
       </section>
     </div>
   );
@@ -143,91 +138,6 @@ function Stat({ label, value }: { label: string; value: string }) {
     <div>
       <dt className="text-lg text-px-muted">{label}</dt>
       <dd className="font-pixel text-sm text-px-cream">{value}</dd>
-    </div>
-  );
-}
-
-const LEVELS: { label: string; tile: string }[] = [
-  { label: "Not taught", tile: "bg-px-night text-px-muted [--px-b:var(--px-wall-line)]" },
-  { label: "Heard of it", tile: "bg-[#4a1f1f] text-px-cream [--px-b:var(--px-red)]" },
-  { label: "Partly", tile: "bg-[#4a3a12] text-px-cream [--px-b:var(--px-gold)]" },
-  { label: "Understood", tile: "bg-[#173d30] text-px-cream [--px-b:var(--px-mint)]" },
-];
-
-function Legend() {
-  return (
-    <ul className="flex flex-wrap gap-4" aria-label="Legend">
-      {LEVELS.map((l) => (
-        <li key={l.label} className="flex items-center gap-2 text-lg">
-          <span className={`px-frame inline-block h-4 w-4 ${l.tile}`} aria-hidden />
-          {l.label}
-        </li>
-      ))}
-      <li className="flex items-center gap-2 text-lg">
-        <span className="font-pixel text-[0.6rem] text-px-red" aria-hidden>
-          !
-        </span>
-        Misconception
-      </li>
-      <li className="flex items-center gap-2 text-lg">
-        <span className="font-pixel text-[0.6rem] text-px-violet" aria-hidden>
-          ≈
-        </span>
-        Weak spot from a time ripple
-      </li>
-    </ul>
-  );
-}
-
-function BrainColumn({
-  week,
-  title,
-  concepts,
-  brain,
-  weak,
-}: {
-  week: number;
-  title: string;
-  concepts: Concept[] | null;
-  brain: Record<string, AlexConceptKnowledge>;
-  weak: string[];
-}) {
-  return (
-    <div className="px-frame space-y-3 bg-px-ink p-4 [--px-b:var(--px-night)]">
-      <p className="font-pixel text-[0.5rem] leading-relaxed text-px-muted">
-        Week {week} · {title}
-      </p>
-      {!concepts ? (
-        <p className="text-lg text-px-muted">Generate this era to reveal its concepts.</p>
-      ) : (
-        <ul className="space-y-2">
-          {concepts.map((concept) => {
-            const k = brain[concept.id];
-            const level = LEVELS[k?.level ?? 0];
-            const wrong = k?.misconceptions.length ?? 0;
-            const shaky = weak.includes(concept.id);
-            return (
-              <li
-                key={concept.id}
-                title={concept.statement}
-                aria-label={`${concept.statement}. ${level.label}${wrong ? `, ${wrong} misconception${wrong > 1 ? "s" : ""}` : ""}`}
-                className={`px-frame relative p-2 ${level.tile}`}
-              >
-                <p className="line-clamp-3 text-base leading-snug">{concept.statement}</p>
-                <p className="mt-1 font-pixel text-[0.45rem]">
-                  {level.label}
-                  {shaky && <span className="text-px-violet"> · ≈ weak spot</span>}
-                </p>
-                {wrong > 0 && (
-                  <span className="absolute right-1 top-1 font-pixel text-[0.6rem] text-px-red" aria-hidden>
-                    !
-                  </span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
     </div>
   );
 }

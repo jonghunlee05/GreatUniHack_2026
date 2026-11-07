@@ -83,7 +83,7 @@ Spec: `prompts/agent2-event-generator.md`. Types: `src/lib/chapter-pack.ts`.
 | Teaching room unlocked? | `getPlayState(game).teachingUnlocked["ch1"]` | `true` once the era is finished |
 | Knowledge debt (written by the assessment room) | `updatePlayState(game, s => { s.knowledgeDebt["ch1"] = [...] })` | Fed into the next chapter's Agent 2 call |
 | Stars earned (shown on Profile) | `updatePlayState(game, s => { (s.stars ??= {})["ch1"] = 2 })` | 0–3, written by the assessment room |
-| Alex's brain (shown on Profile brain map) | `updatePlayState(game, s => { ((s.alexBrain ??= {})["ch1"] ??= {})["c1"] = { level: 2, misconceptions: [] } })` | Keyed by pack concept id; level 0 not taught → 3 understood. Written by the teaching room |
+| Alex's brain (shown on Profile brain map) | Nothing to do | The Profile reads the teaching room's own saved brain (`usePurpleState(game).brains`), so it updates as you teach |
 | Weak spots from time-travel ("time ripple") | `getPlayState(game).ripples?.["ch1"]` | Concept ids the player struggled with in the era. The teaching room can start these as Alex's weak spots |
 | Mark chapter passed | `updatePlayState(game, s => setChapterState(s, "ch1", "completed"))` | The assessment room should do this on a pass. The next chapter unlocks automatically |
 
