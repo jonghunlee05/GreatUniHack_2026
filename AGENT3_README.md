@@ -151,3 +151,30 @@ Pass an `AssessmentFeedback` (`chapter_id`, `failed_concepts`, `alex_mistake`, `
 - **Needs keys:** voice needs `ELEVENLABS_API_KEY`, and spoken replies also need `ELEVENLABS_VOICE_ID`.
 - **Partial:** web-generated chapters run with weak grounding until Agent 2 adds the fields above.
 - **Offline demo only:** the keyword evaluator is conservative and can't understand paraphrases or images.
+
+## Assessment Room (interactive missions)
+
+`purple/mission.py` is one mission engine for every subject. It turns Agent 2's cached Chapter Pack `assessment` section (`data/packs/<game>/ch<N>.json`, read-only) into a validated `AssessmentTask`:
+
+- 3–5 evidence cards, the correct decision, the pack's likely mistakes as misconception-linked actions, a curveball, and the pack's stage points and pass mark.
+- Pack concept IDs are mapped onto Alex's brain concepts.
+- Each mission is built once per chapter and variant, then cached in `apps/web/data/missions/`.
+- With no pack, the engine uses an authored mission (`examples/<chapter>_assessment.json`) or a clearly labelled **DEMO MISSION**.
+
+**Alex decides deterministically.** He can only pick one of the mission's validated actions, based on his AlexBrain (mastery ≥ 2 with no misconception), the evidence the player actually sent, and any hints or pause-and-explain text. A misunderstood or missing concept makes him pick the pack's linked mistake. In the curveball he keeps his old plan unless he knows the new concepts *and* was shown the new condition. Claude is only used for **Ask why**, which phrases the already-chosen action.
+
+**The browser never sees the answers.** `mission_finish` recomputes every decision and the score on the server from the player's inputs.
+
+**Scoring is transparent:**
+- Evidence (relevant cards sent, minus a penalty for irrelevant ones, plus a correct prediction).
+- First decision and curveball: full points if independent, half if assisted.
+- Weights and pass mark come from the pack (default 30/40/30, pass 65).
+
+**Progression:** passing calls the existing `setChapterState(…, "completed")` in `play-state.ts`, which unlocks the next chapter idempotently. It also records stars, and knowledge debt on a fail. Locally, `progress-rules.ts` gates the rooms: Teaching N → Assessment N → Teaching N+1. Clicking Re-teach, Retry or Detective never changes mastery or unlocks.
+
+**Re-teach:** the failed concept and Alex's mistake go to the Teaching Room as assessment feedback. Retry builds a new validated variant.
+
+**Run:**
+- `pytest -q` (Python)
+- `cd apps/web && node --experimental-strip-types --test tests/` (progression rules)
+- Demo: play `/games/<id>/assessment-room` after finishing teaching. A game whose chapter was generated in Time-travel uses the real pack.

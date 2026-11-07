@@ -65,6 +65,39 @@ export type PurpleState = {
   alexStates?: Record<string, unknown>;
   /** Chapter progression: completions per week (unlocks are derived in progression.tsx). */
   progress?: Record<string, { teachingCompleted?: boolean; assessmentCompleted?: boolean }>;
+  /** Interactive assessment mission runs per chapter (Agent 3 mission engine). */
+  missions?: Record<string, MissionRun>;
+  /** Feedback from the last failed mission, read by the Teaching Room for re-teaching. */
+  assessmentFeedback?: Record<string, { failedConcepts: string[]; alexMistake: string; recommendedRevision: string }>;
+};
+
+export type MissionAssist = { hints: string[]; pauses: string[] };
+export type MissionDecisionView = {
+  phase: "initial" | "curveball";
+  action_id: string;
+  action_label: string;
+  success: boolean;
+  assisted: boolean;
+  explanation: string;
+  consequence: string;
+  culprit_concept: string | null;
+  why?: string;
+};
+export type MissionRun = {
+  runId: string;
+  variant: number;
+  stage: "hunt" | "decide" | "curveball" | "report";
+  opened: string[];
+  selected: string[];
+  prediction: string | null;
+  initialAssist: MissionAssist;
+  initialDecision: MissionDecisionView | null;
+  curveOpened: string[];
+  curveSelected: string[];
+  curveAssist: MissionAssist;
+  curveDecision: MissionDecisionView | null;
+  report: Record<string, unknown> | null;
+  diagnosis: string | null;
 };
 
 export type TeachingEvaluation = {

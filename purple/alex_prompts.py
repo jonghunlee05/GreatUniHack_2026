@@ -130,6 +130,12 @@ ACTION_PROMPTS = {
         "ONLY what the teacher taught (evidence below), not the reference material. Then ask whether your "
         "example is right.\nEvidence: {evidence}\nYour possible misconceptions: {misconceptions}"
     ),
+    "explain_decision": (
+        "You are in the assessment and you already chose this action: \"{action}\". The game's reason: "
+        "{reason}. What you were taught (mastery): {known}. In 1-2 short sentences, explain WHY you chose it, "
+        "in character, using only what you were taught. Do not change or second-guess the action, and do not "
+        "reveal any other answer. End with a short question to your mentor."
+    ),
     "challenge": (
         "The teacher pressed 'Challenge me'. Strategy {strategy}: pose ONE new, realistic, specific scenario "
         "about {label} (APPLY: a new situation; TRANSFER: change one assumption of an earlier scenario) and "

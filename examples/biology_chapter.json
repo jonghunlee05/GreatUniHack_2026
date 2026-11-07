@@ -1,0 +1,39 @@
+{
+  "game_id": "biology_demo",
+  "chapter_id": "ch1",
+  "title": "Tissues: What Organs Are Made Of",
+  "subject": "Biomaterials",
+  "summary": "Organs combine several tissue types; each tissue is cells plus extracellular matrix plus signalling molecules.",
+  "learning_objectives": [
+    {"id": "bio.1", "text": "Explain how tissue composition determines how a tissue behaves"}
+  ],
+  "concepts": [
+    {
+      "id": "organ_tissue_types",
+      "label": "Organs combine tissue types",
+      "reference_explanation": "Organs are built from several different tissue types working together, such as cartilage, bone and ligament in a knee.",
+      "key_points": ["Organs are built from several different tissue types working together"],
+      "common_misconceptions": ["An organ is one uniform material"],
+      "source_ref": "biomaterials_week_1",
+      "objective_id": "bio.1"
+    },
+    {
+      "id": "tissue_categories",
+      "label": "Four tissue categories",
+      "reference_explanation": "There are four tissue categories: epithelial, connective, muscle and nervous. Cartilage and bone are both connective tissue but have different matrices.",
+      "key_points": ["There are four tissue categories: epithelial, connective, muscle and nervous"],
+      "common_misconceptions": ["Cartilage and bone are the same tissue"],
+      "source_ref": "biomaterials_week_1",
+      "objective_id": "bio.1"
+    },
+    {
+      "id": "tissue_composition",
+      "label": "Cells, matrix and signals",
+      "reference_explanation": "Tissue is made of cells, extracellular matrix (ECM) and signalling molecules; living cells alone do not make a functional tissue.",
+      "key_points": ["Tissue is made of cells, extracellular matrix and signalling molecules"],
+      "common_misconceptions": ["If the cells are alive the tissue is fine"],
+      "source_ref": "biomaterials_week_1",
+      "objective_id": "bio.1"
+    }
+  ]
+}

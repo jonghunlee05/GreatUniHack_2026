@@ -1,0 +1,112 @@
+/* Assessment Room game-feel (classes prefixed ar-, scoped to this room): card flips, inventory fly-in, curveball event. Lightweight on purpose. */
+
+.ar-lane {
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+}
+.ar-lane > * {
+  scroll-snap-align: start;
+}
+
+/* Evidence card flip */
+.ar-card {
+  perspective: 900px;
+}
+.ar-cardInner {
+  position: relative;
+  height: 100%;
+  min-height: 19rem;
+  transform-style: preserve-3d;
+  transition: transform 450ms steps(6, end);
+}
+.ar-flipped .ar-cardInner {
+  transform: rotateY(180deg);
+}
+.ar-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+.ar-back {
+  transform: rotateY(180deg);
+}
+.ar-card:hover:not(.ar-flipped) .ar-cardInner {
+  transform: translateY(-4px) rotate(-1deg);
+}
+.ar-cardPattern {
+  background-image: repeating-linear-gradient(45deg, var(--px-wall-line) 0 6px, transparent 6px 12px);
+}
+
+/* Selected card leaves the lane; inventory item flies in */
+.ar-sent {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+}
+.ar-flyIn {
+  animation: fly-in 380ms steps(5, end);
+}
+@keyframes fly-in {
+  from { transform: translateX(-60px) scale(0.6); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.ar-bump {
+  animation: bump 300ms steps(3, end);
+}
+@keyframes bump {
+  50% { transform: scale(1.15); }
+}
+
+/* Stage rail */
+.ar-stageActive {
+  animation: pulse-border 1.4s steps(2, end) infinite;
+}
+@keyframes pulse-border {
+  50% { box-shadow: 0 0 0 4px var(--px-gold); }
+}
+.ar-enter {
+  animation: enter 320ms steps(4, end);
+}
+@keyframes enter {
+  from { transform: translateX(40px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* Decision tiles */
+.ar-chosen {
+  animation: chosen 500ms steps(4, end);
+}
+@keyframes chosen {
+  0% { transform: scale(0.92); }
+  60% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+/* Curveball event */
+.ar-alarm {
+  animation: alarm 900ms steps(2, end) 3;
+}
+@keyframes alarm {
+  50% { background-color: var(--px-red); color: var(--px-ink); }
+}
+.ar-shake {
+  animation: shake 420ms steps(6, end) 2;
+}
+@keyframes shake {
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+
+/* Alex pose per stage */
+.ar-alexDeciding { transform: translateX(6px); transition: transform 300ms steps(3, end); }
+.ar-alexSurprised { transform: translateY(-6px); transition: transform 200ms steps(2, end); }
+.ar-alexReflective { transform: translateX(-4px); transition: transform 300ms steps(3, end); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ar-cardInner, .ar-flyIn, .ar-bump, .ar-stageActive, .ar-enter, .ar-chosen, .ar-alarm, .ar-shake,
+  .ar-alexDeciding, .ar-alexSurprised, .ar-alexReflective {
+    animation: none !important;
+    transition: none !important;
+  }
+}

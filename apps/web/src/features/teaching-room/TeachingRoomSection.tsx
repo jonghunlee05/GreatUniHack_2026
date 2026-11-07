@@ -171,6 +171,8 @@ export function TeachingRoomSection({ game }: { game: Game }) {
 
   function repairFeedback() {
     if (!state.repairTarget) return undefined;
+    const fromMission = state.assessmentFeedback?.[key];
+    if (fromMission) return { ...fromMission, failedConcepts: [state.repairTarget, ...fromMission.failedConcepts.filter((c) => c !== state.repairTarget)] };
     const attempt = state.attempts[key] ?? state.previousAttempts.at(-1);
     const failed = attempt?.decisions.find((d) => !d.success);
     const label = brain.concepts[state.repairTarget]?.label ?? state.repairTarget;

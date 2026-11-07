@@ -1,0 +1,295 @@
+{
+  "chapter_id": "ch1",
+  "main_ilo": "Explain that organs are built from several tissue types, and that tissue is made of cells, ECM and signalling molecules",
+  "concepts": [
+    {
+      "id": "c1",
+      "statement": "Organs are built from several different tissue types working together"
+    },
+    {
+      "id": "c2",
+      "statement": "There are four tissue categories: epithelial, connective, muscle and nervous"
+    },
+    {
+      "id": "c3",
+      "statement": "Tissue is made of cells, extracellular matrix (ECM) and signalling molecules"
+    }
+  ],
+  "era": {
+    "setting": {
+      "place": "Paris",
+      "year": "c. 1800",
+      "skin": "sepia"
+    },
+    "cast": [
+      {
+        "name": "Xavier Bichat",
+        "role": "lead",
+        "event_ids": [
+          "ev1"
+        ],
+        "scenes": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "name": "Theodor Schwann",
+        "role": "cameo",
+        "event_ids": [
+          "ev2"
+        ],
+        "scenes": [
+          3
+        ]
+      }
+    ],
+    "scenes": [
+      {
+        "n": 1,
+        "type": "problem",
+        "text": "Paris, c. 1800. Surgeons can name every organ, but they cannot explain why the lining of the gut and the lining of the airway fall ill in the same way. Xavier Bichat has a table covered in specimens and a hunch: perhaps the organ is not the smallest useful unit of the body.",
+        "dialogue": [
+          {
+            "speaker": "Xavier Bichat",
+            "line": "If two different organs fail the same way, what might they share?"
+          }
+        ],
+        "clue_ids": [],
+        "concept_ids": [
+          "c1"
+        ]
+      },
+      {
+        "n": 2,
+        "type": "failed_attempts",
+        "text": "Bichat first treats each organ as one substance. It doesn't work: a stomach wall behaves like several materials at once. He dries, boils and soaks samples in acid, and notices that layers from different organs react alike.",
+        "dialogue": [
+          {
+            "speaker": "Xavier Bichat",
+            "line": "The stomach does not answer as one thing. Why would its layers disagree?"
+          }
+        ],
+        "clue_ids": [
+          "k1"
+        ],
+        "concept_ids": [
+          "c1"
+        ]
+      },
+      {
+        "n": 3,
+        "type": "breakthrough",
+        "text": "Bichat sorts the layers by how they behave, not by which organ they came from, and calls each group a tissue: one organ, many tissues. Decades later, in 1839, Theodor Schwann adds the next piece: animal tissues are made of cells.",
+        "dialogue": [
+          {
+            "speaker": "Xavier Bichat",
+            "line": "Sort them by what they do, not where they were found."
+          },
+          {
+            "speaker": "Theodor Schwann",
+            "line": "And look closer still. Those layers are built from cells."
+          }
+        ],
+        "clue_ids": [
+          "k2",
+          "k3"
+        ],
+        "concept_ids": [
+          "c1",
+          "c3"
+        ]
+      },
+      {
+        "n": 4,
+        "type": "todays_rule",
+        "text": "Your course states it precisely: organs are assemblies of four tissue categories, and every tissue combines cells with an extracellular matrix and the signalling molecules that coordinate them. Designing a biomaterial means designing for that whole system, not just the cells.",
+        "dialogue": [],
+        "clue_ids": [
+          "k4"
+        ],
+        "concept_ids": [
+          "c2",
+          "c3"
+        ]
+      }
+    ],
+    "clues": [
+      {
+        "id": "k1",
+        "type": "artefact",
+        "title": "Bichat's acid-test notes",
+        "text": "Layers from the gut and the airway blister the same way in acid, although they come from different organs.",
+        "concept_ids": [
+          "c1"
+        ]
+      },
+      {
+        "id": "k2",
+        "type": "artefact",
+        "title": "Relabelled specimen jars",
+        "text": "Jars sorted by layer type instead of organ: linings together, supporting layers together, contracting layers together.",
+        "concept_ids": [
+          "c1",
+          "c2"
+        ]
+      },
+      {
+        "id": "k3",
+        "type": "artefact",
+        "title": "Schwann's cell sketch",
+        "text": "A drawing of animal tissue: many small units, each with a nucleus, packed among fibres.",
+        "concept_ids": [
+          "c3"
+        ]
+      },
+      {
+        "id": "k4",
+        "type": "course_material",
+        "title": "Introduction lecture",
+        "text": "Tissue = cells + ECM + signalling molecules. Four tissue categories: epithelial, connective, muscle, nervous.",
+        "source_id": "src2",
+        "concept_ids": [
+          "c2",
+          "c3"
+        ]
+      }
+    ],
+    "mentor_question": {
+      "asked_by": "Xavier Bichat",
+      "scene": 3,
+      "question": "If a lung and a gut fall ill in the same way, what does that tell you about how organs are built?",
+      "key_points": [
+        "Organs are made of more than one tissue type",
+        "The same tissue type can appear in different organs",
+        "The shared tissue, not the organ, explains the shared behaviour"
+      ],
+      "hints": [
+        "Think about the layers, not the whole organ.",
+        "Which layers reacted the same way in the acid test?"
+      ],
+      "mcq_fallback": {
+        "options": [
+          "Organs share tissue types, so the same tissue can fail in different organs",
+          "Each organ is made of one unique substance",
+          "Disease only affects whole organs, never their layers",
+          "Organs with the same shape always behave the same"
+        ],
+        "correct_index": 0
+      }
+    },
+    "field_notes": [
+      {
+        "concept_id": "c1",
+        "note": "An organ is not one material: it is several tissue types working together, and the same tissue can appear in many organs."
+      },
+      {
+        "concept_id": "c2",
+        "note": "Four tissue categories: epithelial (linings), connective (support, e.g. bone and cartilage), muscle (contraction) and nervous (signalling)."
+      },
+      {
+        "concept_id": "c3",
+        "note": "Every tissue is cells plus extracellular matrix (ECM) plus signalling molecules. Change one and the tissue behaves differently."
+      }
+    ],
+    "what_really_happened": {
+      "summary": "Bichat (c. 1800) classified the body into tissues by dissecting and chemically testing organs, without relying on a microscope. In 1839 Schwann proposed that animals are made of cells, which later explained what tissues are built from. The dialogue in this era is dramatised.",
+      "event_ids": [
+        "ev1",
+        "ev2"
+      ]
+    }
+  },
+  "assessment": {
+    "briefing": {
+      "title": "The scaffold that wouldn't take",
+      "situation": "A start-up seeds a patient's own cells onto a plastic scaffold to repair knee cartilage. In trials the cells survive, but the implant never behaves like cartilage.",
+      "task": "Work out why with Alex, and recommend what the next design must include.",
+      "objective": "Explain the failure using what tissue is made of."
+    },
+    "stage1_investigate": {
+      "evidence": [
+        {
+          "id": "e1",
+          "title": "Week 6 lab report",
+          "text": "Seeded cells are alive, but almost no new matrix (collagen, proteoglycan) has formed around them.",
+          "relevant": true,
+          "concept_ids": [
+            "c3"
+          ]
+        },
+        {
+          "id": "e2",
+          "title": "Healthy cartilage histology",
+          "text": "Healthy cartilage is a connective tissue: mostly matrix with few cells, which respond to growth factors held in that matrix.",
+          "relevant": true,
+          "concept_ids": [
+            "c2",
+            "c3"
+          ]
+        },
+        {
+          "id": "e3",
+          "title": "Marketing brochure",
+          "text": "The scaffold comes in five colours and ships worldwide.",
+          "relevant": false,
+          "concept_ids": []
+        },
+        {
+          "id": "e4",
+          "title": "Joint anatomy note",
+          "text": "A knee joint combines cartilage, bone, ligament and synovial lining, each a different tissue.",
+          "relevant": true,
+          "concept_ids": [
+            "c1"
+          ]
+        }
+      ]
+    },
+    "stage2_alex_decides": {
+      "decision_prompt": "Alex must choose what to change in the next scaffold design.",
+      "correct_decision": "Add matrix components and signalling molecules (growth factors) so the cells can build and maintain cartilage tissue, not just survive.",
+      "requires_concepts": [
+        "c1",
+        "c3"
+      ],
+      "likely_mistakes": [
+        {
+          "id": "m1",
+          "alex_says": "The cells are alive, so the tissue is fine. Let's just add more cells.",
+          "missing_concept": "c3",
+          "why_wrong": "Tissue is not just cells. Without ECM and signals the cells will not form cartilage."
+        },
+        {
+          "id": "m2",
+          "alex_says": "Make the scaffold from bone material. Bone is strong, so it will last.",
+          "missing_concept": "c2",
+          "why_wrong": "Cartilage and bone are different connective tissues with different matrices."
+        },
+        {
+          "id": "m3",
+          "alex_says": "Treat the whole knee as one material and match its average stiffness.",
+          "missing_concept": "c1",
+          "why_wrong": "The knee is several tissues. The implant must match the specific tissue it replaces."
+        }
+      ]
+    },
+    "stage3_curveball": {
+      "new_condition": "The surgeon now wants the implant to bond to the bone underneath as well as replace the cartilage.",
+      "correct_response": "Recognise two different tissues: design a layered implant with a cartilage-like layer and a bone-like layer, each with the right matrix.",
+      "tests_concepts": [
+        "c1",
+        "c2"
+      ],
+      "exposes_debt": null
+    },
+    "scoring": {
+      "stage1_points": 30,
+      "stage2_points": 40,
+      "stage3_points": 30,
+      "pass_mark": 70
+    }
+  }
+}

@@ -100,6 +100,8 @@ def _history(req: dict) -> list[dict]:
 
 def handle(req: dict) -> dict:
     command = req.get("command")
+    if command in MISSION_COMMANDS:
+        return handle_mission(req)
     if command not in {"status", "transcribe", "speak", "turn", "action"}:
         raise ValueError(f"Unknown command {command!r}")
     if command == "status":
@@ -162,6 +164,86 @@ def main() -> int:
         response = {"ok": False, "error": f"Agent 3 failed ({type(exc).__name__})", "kind": "internal"}
     sys.stdout.write(json.dumps(response))
     return 0
+
+
+
+# ------------------------------------------------------------ assessment missions
+
+MISSION_COMMANDS = {"mission_load", "mission_decide", "mission_why", "mission_finish"}
+
+
+def handle_mission(req: dict) -> dict:
+    """Assessment Room: build/cached mission, deterministic decisions, transparent score."""
+    from .alex_agent import ClaudeEvaluator, default_evaluator
+    from .alex_prompts import ACTION_PROMPTS
+    from .mission import Assist, build_mission, client_mission, decide_mission, play_mission
+
+    chapter = chapter_from_request(req)
+    game_id = (req.get("game") or {}).get("id", "web")
+    state_raw = req.get("alexState")
+    brain = (AlexState.coerce(state_raw, chapter) if state_raw else AlexState.for_chapter(chapter)).brain
+    mission = build_mission(chapter, req.get("pack"), variant=int(req.get("variant", 0)), game_id=game_id)
+    to_web = {c.id: web_concept_id(c.label) for c in chapter.concepts}
+    from_web = {v: k for k, v in to_web.items()}
+
+    def web_ids(value):
+        """Recursively rename concept ids (dict keys and string values) to web slugs."""
+        if isinstance(value, dict):
+            return {to_web.get(k, k): web_ids(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [web_ids(v) for v in value]
+        return to_web.get(value, value) if isinstance(value, str) else value
+
+    def assist(raw: dict | None) -> Assist:
+        raw = raw or {}
+        return Assist(hint_concepts=[from_web.get(c, c) for c in raw.get("hints", [])],
+                      pause_texts=[str(t) for t in raw.get("pauses", [])][:5])
+
+    command = req["command"]
+    if command == "mission_load":
+        view = client_mission(mission, chapter)
+        view["concepts"] = [{"id": to_web[c["id"]], "label": c["label"]} for c in view["concepts"]]
+        view["hints"] = web_ids(view["hints"])
+        return {"ok": True, "mission": view}
+
+    received = [str(e) for e in req.get("received", [])]
+    if command in ("mission_decide", "mission_why"):
+        phase = "curveball" if req.get("phase") == "curveball" else "initial"
+        decision = decide_mission(chapter, brain, mission, received, phase, assist(req.get("assist")),
+                                  previous_action=req.get("previousAction"))
+        out = web_ids(decision.model_dump())
+        if command == "mission_why":
+            line = decision.explanation
+            evaluator, _ = default_evaluator()
+            if isinstance(evaluator, ClaudeEvaluator):
+                try:
+                    known = [f"{c.label} ({brain.concepts[c.id].level}/3)" for c in chapter.concepts]
+                    said = evaluator.say(chapter, ACTION_PROMPTS["explain_decision"].format(
+                        action=decision.action_label, reason=decision.explanation, known="; ".join(known)))
+                    line = said or line
+                except Exception:
+                    pass  # deterministic reason is always available
+            out["why"] = line
+        return {"ok": True, "decision": out}
+
+    # mission_finish: recompute everything server-side from the player's inputs
+    phases = req.get("assist") or {}
+    report = play_mission(
+        chapter, brain, mission, received=received,
+        curveball_received=[str(e) for e in req.get("curveballReceived", [])],
+        initial_assist=assist(phases.get("initial")), curveball_assist=assist(phases.get("curveball")),
+        prediction=from_web.get(req.get("prediction") or "", req.get("prediction")),
+    )
+    report = web_ids(report)
+    report["stars"] = 3 if report["score"] >= 90 else 2 if report["passed"] else 1 if report["score"] >= 40 else 0
+    failed = [d for d in report["decisions"] if not d["success"]]
+    report["feedback"] = None if report["passed"] and not failed else {
+        "failedConcepts": report["culprit_concepts"] or report["concepts_missing"][:1],
+        "alexMistake": failed[0]["explanation"] if failed else "",
+        "recommendedRevision": "Re-explain " + ", ".join(
+            report["labels"].get(c, c) for c in (report["culprit_concepts"] or report["concepts_missing"][:1])),
+    }
+    return {"ok": True, "report": report, "chapterId": chapter.chapter_id}
 
 
 if __name__ == "__main__":
