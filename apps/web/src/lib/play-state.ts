@@ -58,6 +58,16 @@ export type PlayState = {
   teachingUnlocked: Record<string, boolean>;
   /** Written by the assessment room (half-truths found); fed to the next chapter's Agent 2 call. */
   knowledgeDebt: Record<string, KnowledgeDebt[]>;
+  /** Stars earned per chapter (0–3), written by the assessment room. */
+  stars?: Record<string, number>;
+  /** What Alex knows per chapter and concept, written by the teaching room. Shown on the profile. */
+  alexBrain?: Record<string, Record<string, AlexConceptKnowledge>>;
+};
+
+/** Mirrors the teaching room's ConceptKnowledge: 0 = not taught … 3 = understood. */
+export type AlexConceptKnowledge = {
+  level: 0 | 1 | 2 | 3;
+  misconceptions: string[];
 };
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -75,10 +85,30 @@ function initialPlayState(game: Game): PlayState {
     fieldNotes: {},
     teachingUnlocked: {},
     knowledgeDebt: {},
+    stars: {},
+    alexBrain: {},
   };
 }
 
-/** Ensures every chapter has a status: chapter 1 available, the rest locked. */
+/**
+ * When the next chapter unlocks:
+ *  - "era" (default, for now): finishing a chapter's time-travel era
+ *  - "assessment" (the spec rule): passing the chapter's assessment (state "completed")
+ * Set UNLOCK_NEXT_ON=assessment once the assessment room marks chapters completed.
+ */
+const UNLOCK_NEXT_ON = () => (process.env.UNLOCK_NEXT_ON === "assessment" ? "assessment" : "era");
+
+/** Unlocks the chapter after `chapterId` (locked → available). Safe to call repeatedly. */
+export function unlockNextChapter(game: Game, state: PlayState, chapterId: string): void {
+  const sorted = [...game.chapters].sort((a, b) => a.week - b.week);
+  const i = sorted.findIndex((c) => chapterIdFor(c.week) === chapterId);
+  const next = sorted[i + 1];
+  if (i === -1 || !next) return;
+  const nextId = chapterIdFor(next.week);
+  if (state.chapters[nextId]?.state === "locked") setChapterState(state, nextId, "available");
+}
+
+/** Ensures every chapter has a status (chapter 1 available, the rest locked) and applies unlocks. */
 function withAllChapters(game: Game, state: PlayState): PlayState {
   const sorted = [...game.chapters].sort((a, b) => a.week - b.week);
   sorted.forEach((c, i) => {
@@ -87,6 +117,14 @@ function withAllChapters(game: Game, state: PlayState): PlayState {
       state.chapters[id] = { state: i === 0 ? "available" : "locked", updatedAt: now() };
     }
   });
+  for (const c of sorted) {
+    const id = chapterIdFor(c.week);
+    const passed =
+      UNLOCK_NEXT_ON() === "era"
+        ? state.timeTravel[id]?.finished || state.chapters[id]?.state === "completed"
+        : state.chapters[id]?.state === "completed";
+    if (passed) unlockNextChapter(game, state, id);
+  }
   return state;
 }
 
