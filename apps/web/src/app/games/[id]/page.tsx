@@ -1,36 +1,34 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { loadGame } from "@/lib/load-game";
-import { SECTIONS, TONE_CLASSES } from "@/lib/sections";
+import { gameProgress } from "@/lib/game-display";
+import { LobbyScene } from "@/features/lobby/LobbyScene";
 
-/** Game hub: the four sections from the app-flow diagram. */
-export default function GameHubPage({ params }: PageProps<"/games/[id]">) {
+/** Game lobby: the pixel room with the four stations. */
+export default function GameLobbyPage({ params }: PageProps<"/games/[id]">) {
   return (
     <Suspense fallback={null}>
-      <SectionGrid params={params} />
+      <Lobby params={params} />
     </Suspense>
   );
 }
 
-async function SectionGrid({ params }: { params: Promise<{ id: string }> }) {
+async function Lobby({ params }: { params: Promise<{ id: string }> }) {
   const game = await loadGame(params);
+  const progress = gameProgress(game);
+  const firstEra = game.chapters[0]?.era.years ?? "";
+  const subject = game.course.name || game.course.subject;
 
   return (
-    <ul className="grid gap-4 sm:grid-cols-2">
-      {SECTIONS.map((s) => {
-        const tone = TONE_CLASSES[s.tone];
-        return (
-          <li key={s.slug}>
-            <Link
-              href={`/games/${game.id}/${s.slug}`}
-              className={`flex h-40 flex-col items-center justify-center rounded-2xl border text-center transition ${tone.card}`}
-            >
-              <span className={`text-2xl font-semibold ${tone.ink}`}>{s.name}</span>
-              <span className={`mt-1 ${tone.ink} opacity-80`}>{s.tagline}</span>
-            </Link>
-          </li>
-        );
-      })}
-    </ul>
+    <div className="space-y-4">
+      <LobbyScene
+        gameId={game.id}
+        hudLabel={firstEra ? `${subject} · ${firstEra}` : subject}
+        stars={progress.stars}
+        maxStars={progress.maxStars}
+        progress={game.chapters.length ? progress.completedChapters / game.chapters.length : 0}
+        currentWeek={progress.currentWeek}
+      />
+      <p className="text-center text-xl text-px-muted">Pick a station. Tab and Enter work too.</p>
+    </div>
   );
 }

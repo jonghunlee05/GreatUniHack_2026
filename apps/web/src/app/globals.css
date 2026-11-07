@@ -1,39 +1,258 @@
 @import "tailwindcss";
 
-/* Palette taken from the app-flow diagram (docs/app-flow.png). */
+/* Pixel-art palette, taken from the lobby mock-up. */
 :root {
-  --background: #fbfaf7;
-  --foreground: #1f1e1b;
-  --muted: #6b6a63;
-  --paper: #f1efe8;
-  --line: #d6d3c8;
-  --mint: #e1f5ee;
-  --mint-ink: #0f6e56;
-  --lilac: #eeedfe;
-  --lilac-ink: #3c3489;
+  --px-night: #120e1e;
+  --px-wall: #2a2140;
+  --px-wall-line: #33294d;
+  --px-ink: #1a1428;
+  --px-cream: #f3ebdd;
+  --px-muted: #a79fbf;
+  --px-gold: #f2c14e;
+  --px-gold-dark: #c79a2e;
+  --px-copper: #c7773a;
+  --px-copper-light: #d98a4a;
+  --px-copper-dark: #8e5126;
+  --px-mint: #4fbf8e;
+  --px-violet: #a89cf5;
+  --px-red: #e0604a;
+  --px-blue: #5ba7e8;
+  --px-teal: #39d0e0;
+  --px-steel: #6e7382;
+  --px-steel-light: #9aa0ae;
+  --px-wood: #6b4630;
+  --px-wood-dark: #4a3226;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-paper: var(--paper);
-  --color-line: var(--line);
-  --color-mint: var(--mint);
-  --color-mint-ink: var(--mint-ink);
-  --color-lilac: var(--lilac);
-  --color-lilac-ink: var(--lilac-ink);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-px-night: var(--px-night);
+  --color-px-wall: var(--px-wall);
+  --color-px-wall-line: var(--px-wall-line);
+  --color-px-ink: var(--px-ink);
+  --color-px-cream: var(--px-cream);
+  --color-px-muted: var(--px-muted);
+  --color-px-gold: var(--px-gold);
+  --color-px-copper: var(--px-copper);
+  --color-px-copper-dark: var(--px-copper-dark);
+  --color-px-mint: var(--px-mint);
+  --color-px-violet: var(--px-violet);
+  --color-px-red: var(--px-red);
+  --color-px-blue: var(--px-blue);
+  --color-px-steel: var(--px-steel);
+  --color-px-steel-light: var(--px-steel-light);
+  --color-px-wood: var(--px-wood);
+  --color-px-wood-dark: var(--px-wood-dark);
+  --font-pixel: var(--font-press-start), ui-monospace, monospace;
+  --font-terminal: var(--font-vt323), ui-monospace, monospace;
 }
 
-/* Scale the whole UI (everything is in rem) on large screens:
-   16px on laptops, growing to 22px on very wide monitors. */
+/* Scale the whole UI (everything is in rem) on large screens. */
 html {
-  font-size: clamp(16px, 0.55vw + 8px, 22px);
+  font-size: clamp(15px, 0.3vw + 9px, 18px);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background-color: var(--px-wall);
+  /* wall panelling, 4px lines on an 80px rhythm */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 76px,
+    var(--px-wall-line) 76px 80px
+  );
+  color: var(--px-cream);
+  font-family: var(--font-vt323), ui-monospace, monospace;
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+
+:focus-visible {
+  outline: 4px solid var(--px-gold);
+  outline-offset: 4px;
+}
+
+@layer components {
+  /* Chunky pixel border with notched corners. Set --px-b to recolour. */
+  .px-frame {
+    box-shadow:
+      0 -4px 0 0 var(--px-b, var(--px-ink)),
+      0 4px 0 0 var(--px-b, var(--px-ink)),
+      -4px 0 0 0 var(--px-b, var(--px-ink)),
+      4px 0 0 0 var(--px-b, var(--px-ink));
+  }
+
+  .px-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-family: var(--font-press-start), ui-monospace, monospace;
+    font-size: 0.7rem;
+    line-height: 1.4;
+    padding: 0.9rem 1.2rem;
+    background: var(--px-copper);
+    color: var(--px-ink);
+    cursor: pointer;
+    box-shadow:
+      0 -4px 0 0 var(--px-ink),
+      0 4px 0 0 var(--px-ink),
+      -4px 0 0 0 var(--px-ink),
+      4px 0 0 0 var(--px-ink),
+      inset 0 -4px 0 0 var(--px-copper-dark);
+  }
+  .px-btn:hover {
+    background: var(--px-copper-light);
+  }
+  .px-btn:active {
+    transform: translateY(2px);
+  }
+  .px-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .px-btn--ghost {
+    background: var(--px-wall-line);
+    color: var(--px-cream);
+    box-shadow:
+      0 -4px 0 0 var(--px-ink),
+      0 4px 0 0 var(--px-ink),
+      -4px 0 0 0 var(--px-ink),
+      4px 0 0 0 var(--px-ink),
+      inset 0 -4px 0 0 var(--px-ink);
+  }
+  .px-btn--ghost:hover {
+    background: #40345f;
+  }
+  .px-btn--lg {
+    font-size: 0.85rem;
+    padding: 1.2rem 1.6rem;
+  }
+
+  .px-input {
+    width: 100%;
+    background: var(--px-night);
+    color: var(--px-cream);
+    font-size: 1.25rem;
+    padding: 0.5rem 0.75rem;
+    outline: none;
+    --px-b: var(--px-wall-line);
+  }
+  .px-input:focus {
+    --px-b: var(--px-gold);
+  }
+  .px-input::placeholder {
+    color: var(--px-muted);
+    opacity: 0.7;
+  }
+
+  /* Lobby stations (SVG links) */
+  .station {
+    cursor: pointer;
+    outline: none;
+  }
+  .station:hover .pl,
+  .station:focus-visible .pl {
+    fill: var(--px-copper);
+  }
+  .station:focus-visible .pl {
+    stroke: var(--px-gold);
+    stroke-width: 4;
+  }
+}
+
+/* Animations: stepped, like sprites. Only when the user allows motion. */
+@keyframes px-bob {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+@keyframes px-glow {
+  50% {
+    opacity: 0.55;
+  }
+}
+@keyframes px-blink {
+  50% {
+    opacity: 0.2;
+  }
+}
+@keyframes px-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes px-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+@keyframes px-pop {
+  0% {
+    transform: translateY(48px) scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(-12px) scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes px-puff {
+  from {
+    transform: translateY(0);
+    opacity: 0.9;
+  }
+  to {
+    transform: translateY(-16px);
+    opacity: 0;
+  }
+}
+@keyframes px-flip {
+  50% {
+    transform: scaleX(-1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .anim-bob {
+    animation: px-bob 1s steps(2) infinite;
+  }
+  .anim-glow {
+    animation: px-glow 1.4s steps(2) infinite;
+  }
+  .anim-blink {
+    animation: px-blink 0.8s steps(2) infinite;
+  }
+  .anim-spin,
+  .anim-spin-rev {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: px-spin 1.2s steps(8) infinite;
+  }
+  .anim-spin-rev {
+    animation-direction: reverse;
+  }
+  .anim-slide {
+    animation: px-slide 1.6s steps(16) infinite;
+  }
+  .anim-pop {
+    animation: px-pop 0.9s steps(6) both;
+  }
+  .anim-puff {
+    animation: px-puff 1.6s steps(4) infinite;
+  }
+  .anim-flip {
+    transform-box: fill-box;
+    transform-origin: left center;
+    animation: px-flip 0.9s steps(2) infinite;
+  }
+  .lift {
+    transition: transform 120ms steps(2);
+  }
 }

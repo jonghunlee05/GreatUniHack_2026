@@ -45,6 +45,8 @@ src/features/teaching-room/TeachingRoomSection.tsx  ← the section's UI (start 
 | `src/lib/storage.ts` | Load and save games (JSON files in `data/games/`) |
 | `src/lib/sections.ts` | The four sections: names, colours, order |
 | `src/components/` | UI used by several sections |
+| `src/components/pixel/` | Pixel-art kit: `PixelButton`, `PixelPanel`, `SpeechBubble`, `AlexSprite`, `Cartridge`, `Machine`, `StatusLog`, `PixelStar`. Reuse these so every room matches |
+| `src/app/globals.css` | Pixel palette (`px-*` colours), fonts (`font-pixel`, VT323 body), `px-frame` border, stepped animations |
 
 `AlexBrain` (what Alex has been taught) connects the teaching room and the
 assessment room. When it's defined, put it in `src/lib/`.

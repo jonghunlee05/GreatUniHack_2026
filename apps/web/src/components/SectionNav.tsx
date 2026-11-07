@@ -4,50 +4,47 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SECTIONS, TONE_CLASSES } from "@/lib/sections";
 
-/** Tab bar shown on every page inside a game. */
+/** Pixel tab bar shown on every page inside a game. */
 export function SectionNav({ gameId }: { gameId: string }) {
   const pathname = usePathname();
   const base = `/games/${gameId}`;
 
   return (
-    <nav className="flex gap-2 overflow-x-auto border-b border-line pb-px">
-      <NavLink href={base} active={pathname === base} activeClass="border-foreground">
-        Overview
-      </NavLink>
+    <nav aria-label="Game sections" className="flex flex-wrap gap-3">
+      <Tab href={base} active={pathname === base} activeInk="text-px-gold">
+        Lobby
+      </Tab>
       {SECTIONS.map((s) => {
         const href = `${base}/${s.slug}`;
-        const tone = TONE_CLASSES[s.tone];
         return (
-          <NavLink
-            key={s.slug}
-            href={href}
-            active={pathname.startsWith(href)}
-            activeClass={`${tone.ink} border-current`}
-          >
+          <Tab key={s.slug} href={href} active={pathname.startsWith(href)} activeInk={TONE_CLASSES[s.tone].ink}>
             {s.name}
-          </NavLink>
+          </Tab>
         );
       })}
     </nav>
   );
 }
 
-function NavLink({
+function Tab({
   href,
   active,
-  activeClass,
+  activeInk,
   children,
 }: {
   href: string;
   active: boolean;
-  activeClass: string;
+  activeInk: string;
   children: React.ReactNode;
 }) {
   return (
     <Link
       href={href}
-      className={`-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition ${
-        active ? activeClass : "border-transparent text-muted hover:text-foreground"
+      aria-current={active ? "page" : undefined}
+      className={`px-frame m-1 px-3 py-2 font-pixel text-[0.55rem] leading-relaxed ${
+        active
+          ? `bg-px-ink ${activeInk} [--px-b:currentColor]`
+          : "bg-px-wall-line text-px-muted hover:text-px-cream [--px-b:var(--px-ink)]"
       }`}
     >
       {children}

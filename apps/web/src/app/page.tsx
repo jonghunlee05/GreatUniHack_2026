@@ -1,71 +1,62 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { connection } from "next/server";
 import { listGames } from "@/lib/storage";
+import { AlexSprite } from "@/components/pixel/AlexSprite";
+import { Cartridge, InsertSlot } from "@/components/pixel/Cartridge";
+import { SpeechBubble } from "@/components/pixel/PixelPanel";
 
+/** Home: the "save file select" screen. */
 export default function HomePage() {
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="space-y-10">
+      <header className="flex items-end gap-4">
+        <AlexSprite className="h-20 w-auto shrink-0" />
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Your games</h1>
-          <p className="mt-1 text-muted">
-            One game per course. Upload your materials and Alex is ready to learn.
-          </p>
+          <h1 className="font-pixel text-2xl leading-snug text-px-gold sm:text-3xl">Teach Alex</h1>
+          <p className="mt-2 text-xl text-px-muted">Select a save file</p>
         </div>
-        <Link
-          href="/new"
-          className="rounded-lg bg-mint-ink px-4 py-2 font-medium text-white hover:opacity-90"
-        >
-          + New game
-        </Link>
-      </div>
+      </header>
 
-      <Suspense fallback={<p className="text-muted">Loading games…</p>}>
-        <GameList />
+      <Suspense fallback={<p className="font-pixel text-xs text-px-muted">Loading…</p>}>
+        <Shelf />
       </Suspense>
     </div>
   );
 }
 
-async function GameList() {
+async function Shelf() {
   await connection();
   const games = await listGames();
 
-  if (games.length === 0) {
-    return (
-      <div className="rounded-xl border border-dashed border-line bg-paper p-10 text-center">
-        <p className="font-medium">No games yet</p>
-        <p className="mt-1 text-muted">
-          Start by uploading course materials: PDFs, slides or notes.
-        </p>
-        <Link href="/new" className="mt-4 inline-block font-medium text-mint-ink underline">
-          Create your first game
-        </Link>
-      </div>
-    );
-  }
-
   return (
-    <ul className="grid gap-4 sm:grid-cols-2">
-      {games.map((game) => (
-        <li key={game.id}>
-          <Link
-            href={`/games/${game.id}`}
-            className="block h-full rounded-xl border border-line bg-paper p-5 transition hover:border-mint-ink"
-          >
-            <p className="font-semibold">{game.title}</p>
-            <p className="mt-1 text-sm text-muted">{game.course.name}</p>
-            <p className="mt-3 text-sm">
-              {game.chapters.length} chapters ·{" "}
-              {game.chapters.reduce((n, c) => n + c.ilos.length, 0)} learning outcomes
-            </p>
-            <p className="mt-1 text-xs text-muted">
-              Created {new Date(game.createdAt).toLocaleDateString("en-GB")}
-            </p>
-          </Link>
-        </li>
-      ))}
-    </ul>
+    <section aria-label="Your games" className="space-y-8">
+      {games.length === 0 && (
+        <div className="flex items-center gap-6">
+          <AlexSprite mood="idle" className="h-16 w-auto shrink-0" />
+          <SpeechBubble>No games yet. Feed me a course!</SpeechBubble>
+        </div>
+      )}
+
+      <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {games.map((game) => (
+          <ShelfSlot key={game.id}>
+            <Cartridge game={game} href={`/games/${game.id}`} />
+          </ShelfSlot>
+        ))}
+        <ShelfSlot>
+          <InsertSlot highlight={games.length === 0} />
+        </ShelfSlot>
+      </ul>
+    </section>
+  );
+}
+
+/** One shelf cell: the item, then a wooden plank (planks join into a shelf). */
+function ShelfSlot({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="flex flex-col justify-end">
+      <div className="px-4 pt-8">{children}</div>
+      <div aria-hidden className="mt-1 h-4 border-b-4 border-px-wood-dark bg-px-wood" />
+    </li>
   );
 }

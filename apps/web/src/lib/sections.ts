@@ -46,8 +46,8 @@ export const SECTIONS: Section[] = [
 ];
 
 export const TONE_CLASSES: Record<Section["tone"], { card: string; ink: string }> = {
-  mint: { card: "bg-mint border-mint-ink/40 hover:border-mint-ink", ink: "text-mint-ink" },
-  lilac: { card: "bg-lilac border-lilac-ink/40 hover:border-lilac-ink", ink: "text-lilac-ink" },
+  mint: { card: "[--px-b:var(--px-mint)]", ink: "text-px-mint" },
+  lilac: { card: "[--px-b:var(--px-violet)]", ink: "text-px-violet" },
 };
 
 export function getSection(slug: SectionSlug): Section {
