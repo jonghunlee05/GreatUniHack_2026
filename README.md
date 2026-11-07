@@ -36,26 +36,27 @@ Home
                 └── Assessment room  → weekly interactive task: me + Alex + a problem
 ```
 
-### 2.1 Home
+### 2.1 Home, upload + AI game generator (owner: **Justin**)
 - Lists all games the user has created.
 - `+` button opens the "New game" flow (upload materials → generate game).
+- AI game generator (`skills.md`): maps the course structure into chapters and writes ILOs for each week.
 
-### 2.2 Profile
+### 2.2 Profile (owner: **Justin**)
 - Badges, stars per chapter, overall progress.
 - Alex's brain map (what Alex currently knows / misunderstands). *(stretch)*
 
-### 2.3 Time-travel (owner: **me**)
+### 2.3 Time-travel (owner: **Justin**)
 - The course as a timeline of historical eras; each era is a chapter with one learning outcome.
 - Example (PCB): 1930s wiring nightmare → 1940s built to survive → 1960s–80s density → today signal integrity.
 - Handles: chapter generation from course materials, the era's mentor character, knowledge debt across eras.
 - *Details to be defined.*
 
-### 2.4 Teaching room (owner: **friend**)
+### 2.4 Teaching room (owner: **Shasha**)
 - Student explains the concept to Alex by chat (and sketching, stretch).
 - Alex asks naive questions, interrupts on jargon, and builds his "brain" only from what he is taught.
 - Alex teaches it back at the end, including the student's mistakes.
 
-### 2.5 Assessment room (owner: **friend**)
+### 2.5 Assessment room (owner: **Shasha**)
 - Weekly interactive task: the student and Alex solve a problem together.
 - Alex applies only what he was taught; misconceptions show up as failures.
 - Candidate mechanics: predict-the-failure, mission control (pause / limited hints), curveball constraint, sabotage heist, Alex's planted false statement, short oral defence.
@@ -117,10 +118,12 @@ Home
 
 | Area | Owner |
 |---|---|
-| Home, upload flow, profile | TBD |
-| Time-travel | Me |
-| Teaching room | Friend |
-| Assessment room | Friend |
+| Home, upload flow, AI game generator | Justin |
+| Profile (badges) | Justin |
+| Time-travel | Justin |
+| Teaching room | Shasha |
+| Assessment room (weekly practicals) | Shasha |
+| Results: know vs don't know (score /100, badges, next week) | Shasha |
 | Shared data model (`AlexBrain` etc.) | Both |
 
 ---
