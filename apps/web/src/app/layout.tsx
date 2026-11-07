@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Press_Start_2P, VT323 } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Press Start 2P for headings and labels, VT323 for body text.
+const pressStart = Press_Start_2P({
+  weight: "400",
   subsets: ["latin"],
+  variable: "--font-press-start",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const vt323 = VT323({
+  weight: "400",
   subsets: ["latin"],
+  variable: "--font-vt323",
 });
 
 export const metadata: Metadata = {
@@ -21,19 +23,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col font-sans">
-        <header className="border-b border-line">
-          <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-            <Link href="/" className="text-lg font-semibold tracking-tight">
-              Teach Alex
-            </Link>
-          </div>
-        </header>
-        <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">{children}</main>
+    <html lang="en" className={`${pressStart.variable} ${vt323.variable} h-full`}>
+      <body className="flex min-h-full flex-col">
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">{children}</main>
       </body>
     </html>
   );

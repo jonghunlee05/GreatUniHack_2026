@@ -88,29 +88,39 @@ Home
 
 ---
 
-## 5. Proposed repo structure
+## 5. Repo structure
 
 ```
 /
 ├── README.md
-├── docs/
-│   ├── concept.md            # full idea, pitch, learning science
-│   └── data-model.md         # Game, Chapter, AlexBrain, Attempt, Badge
-├── apps/web/                 # frontend
-│   └── src/
-│       ├── pages/home
-│       ├── pages/profile
-│       ├── pages/time-travel
-│       ├── pages/teaching-room
-│       └── pages/assessment-room
-├── services/
-│   ├── ingest/               # upload + parse course materials
-│   ├── chapters/             # generate eras/chapters (time-travel)
-│   ├── alex/                 # Alex agent + AlexBrain
-│   └── assessment/           # tasks, simulation, grading
-├── prompts/                  # versioned system prompts (Alex, mentor, validator)
-└── tests/
+├── docs/                         # diagrams and design notes
+├── prompts/                      # versioned system prompts, one folder per agent
+│   └── game-generator/skills.md  # (later: alex/, mentor/, validator/)
+└── apps/web/                     # Next.js app
+    ├── data/games/               # generated games as JSON (gitignored)
+    └── src/
+        ├── app/                  # routes only: thin pages that load data
+        │   ├── page.tsx                  # Home
+        │   ├── new/                      # New game (upload)
+        │   ├── api/games/                # POST: generate a game
+        │   └── games/[id]/
+        │       ├── layout.tsx            # game title + section tabs
+        │       ├── page.tsx              # hub: the 4 sections
+        │       ├── profile/
+        │       ├── time-travel/
+        │       ├── teaching-room/
+        │       └── assessment-room/
+        ├── features/             # one folder per section: UI, logic, Claude calls
+        │   ├── new-game/         # Justin: ingest + generator
+        │   ├── profile/          # Justin
+        │   ├── time-travel/      # Justin
+        │   ├── teaching-room/    # Shasha
+        │   └── assessment-room/  # Shasha
+        ├── components/           # UI shared across sections
+        └── lib/                  # shared types, storage, section list
 ```
+
+See `apps/web/src/features/README.md` for how a section is wired and where to put new code.
 
 ---
 
@@ -173,9 +183,90 @@ What's built so far (Justin):
 | Part | Where |
 |---|---|
 | Home: list of games + "New game" | `apps/web/src/app/page.tsx` |
-| Upload course materials (PDF, .pptx, .txt/.md) | `apps/web/src/app/new/page.tsx`, `apps/web/src/lib/ingest.ts` |
-| AI game generator: maps the course into chapters + writes ILOs | `apps/web/src/app/api/games/route.ts`, `apps/web/src/lib/generator.ts` |
+| Upload course materials (PDF, .pptx, .txt/.md) | `apps/web/src/app/new/page.tsx`, `apps/web/src/features/new-game/ingest.ts` |
+| AI game generator: maps the course into chapters + writes ILOs | `apps/web/src/app/api/games/route.ts`, `apps/web/src/features/new-game/` |
 | Generator instructions (`skills.md`) | `prompts/game-generator/skills.md` |
 | Game / Chapter / ILO schema | `apps/web/src/lib/game-schema.ts` |
+| Pixel-art UI: save-file Home, the forge (upload), loading/reveal screens | `apps/web/src/components/pixel/`, `apps/web/src/app/new/` |
+| Game lobby: pixel room with Profile, Time-travel, Teaching room, Assessment room (sections are placeholders for now) | `apps/web/src/features/lobby/`, `apps/web/src/app/games/[id]/`, `apps/web/src/features/<section>/` |
 
 Generated games are saved as JSON in `apps/web/data/games/`, which is gitignored.
+
+---
+
+## 11. Design system (pixel art)
+
+Every screen uses the same 2D pixel-art style as the lobby. Reuse the pieces below so the teaching and assessment rooms match Home, the forge and the lobby. Styles live in `apps/web/src/app/globals.css`; components in `apps/web/src/components/pixel/`.
+
+### Rules
+
+- **4px grid.** Sizes and offsets are multiples of 4px. Pixel art is SVG with `shapeRendering="crispEdges"` and only `<rect>`s (no curves or gradients).
+- **Borders:** add the `px-frame` class for the chunky notched border. Recolour it with `[--px-b:var(--px-gold)]`.
+- **Animation:** stepped, sprite-like (`steps(...)`), never smooth easing. Use the ready-made classes, which already switch off for users who prefer reduced motion.
+- **Dark room:** the page background is the purple wall. Panels sit on top in ink (dark) or cream (speech/labels).
+
+### Colours
+
+Use them as Tailwind classes, e.g. `bg-px-ink`, `text-px-gold`, `[--px-b:var(--px-mint)]`.
+
+| Token | Hex | Use |
+|---|---|---|
+| `px-wall` | `#2a2140` | Page background |
+| `px-ink` | `#1a1428` | Panels, borders, dark text on cream |
+| `px-night` | `#120e1e` | Inputs, logs, HUD bars |
+| `px-cream` | `#f3ebdd` | Main text, speech bubbles, labels |
+| `px-muted` | `#a79fbf` | Secondary text |
+| `px-gold` | `#f2c14e` | Page titles, stars, focus ring |
+| `px-copper` | `#c7773a` | Primary buttons, hover |
+| `px-mint` | `#4fbf8e` | Success, progress. **Justin's sections** (Profile, Time-travel) |
+| `px-violet` | `#a89cf5` | **Shasha's sections** (Teaching room, Assessment room) |
+| `px-red` | `#e0604a` | Errors, the boss door |
+| `px-steel` / `px-wood` | `#6e7382` / `#6b4630` | Machines, furniture, shelves |
+
+### Fonts
+
+| Class | Font | Use |
+|---|---|---|
+| `font-pixel` | Press Start 2P | Titles, buttons, labels. Keep it small: `text-[0.6rem]` to `text-2xl` |
+| (default) | VT323 | All body text. Base size is `text-xl` |
+
+### Components
+
+| Component | What it is |
+|---|---|
+| `PixelButton` | Copper button (`variant="ghost"` for secondary, `size="lg"`, `href` makes it a link) |
+| `PixelPanel` | Framed box: `tone="dark" \| "cream" \| "danger"` |
+| `SpeechBubble` | Cream bubble for Alex talking |
+| `AlexSprite` | Alex: `mood="idle" \| "reading" \| "worried"` |
+| `StatusLog` | Terminal-style lines that appear one by one |
+| `PixelStar` | Pixel star (the pixel font has no ★) |
+| `Machine`, `Cartridge` | The forge machine and game cartridge (Home / New game) |
+
+### Animation classes
+
+`anim-bob` (idle bounce), `anim-glow` (pulse), `anim-blink`, `anim-spin` / `anim-spin-rev` (gears), `anim-pop` (pop in), `anim-puff` (smoke), `anim-flip` (book page), `lift` (hover lift, used with `group-hover:-translate-y-1`).
+
+### Starter for a room
+
+```tsx
+import { AlexSprite } from "@/components/pixel/AlexSprite";
+import { PixelButton } from "@/components/pixel/PixelButton";
+import { PixelPanel, SpeechBubble } from "@/components/pixel/PixelPanel";
+import type { Game } from "@/lib/game-schema";
+
+export function TeachingRoomSection({ game }: { game: Game }) {
+  return (
+    <div className="space-y-6">
+      <h2 className="font-pixel text-lg text-px-violet">Teaching room</h2>
+      <div className="flex items-center gap-6">
+        <AlexSprite className="h-20 w-auto" />
+        <SpeechBubble>What's a ground plane?</SpeechBubble>
+      </div>
+      <PixelPanel className="space-y-4">
+        <input className="px-input px-frame" placeholder="Explain it to Alex…" />
+        <PixelButton>Teach</PixelButton>
+      </PixelPanel>
+    </div>
+  );
+}
+```

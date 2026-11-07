@@ -1,7 +1,7 @@
 import "server-only";
 import JSZip from "jszip";
 import type Anthropic from "@anthropic-ai/sdk";
-import type { SourceFile } from "./game-schema";
+import type { SourceFile } from "@/lib/game-schema";
 
 type ContentBlock = Anthropic.Beta.BetaContentBlockParam;
 

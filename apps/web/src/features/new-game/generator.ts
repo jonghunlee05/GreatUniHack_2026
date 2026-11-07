@@ -3,7 +3,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
-import { GeneratedGameSchema, type GeneratedGame } from "./game-schema";
+import { GeneratedGameSchema, type GeneratedGame } from "@/lib/game-schema";
 import type { IngestedFile } from "./ingest";
 
 const MODEL = "claude-opus-5-5";
