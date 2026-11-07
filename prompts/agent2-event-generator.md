@@ -93,6 +93,18 @@ ASSESSMENT
 - Alex's likely mistakes must each come from a specific missing or wrong concept, so that a student who taught Alex badly will see him make that mistake.
 - If previous_chapter.knowledge_debt is not empty, the curveball must expose at least one of those half-truths.
 
+SCENE ART AND INTERACTION (optional extras; keep them short)
+- For each scene, add "art" so the game can draw it from its pixel-art library: the real kind of place, what is seen outside, time of day, weather, an ambient effect, 3–5 props, and a pose for each cast member in the scene. Use only values from the ART LIBRARY list at the end. Make each scene look different and true to the period.
+- Hide each artefact clue in one of its scene's props by setting the clue's "prop" to that prop id. Course-material clues need no prop.
+- mentor_chat: in scene 1 or 2, give 2–3 questions the student can ask the lead, each with a reply under 30 words that guides with a question or an observation. Replies never give the mentor-question answer.
+- experiment: one hands-on recreation of the period's experiment or reasoning, in scene 2 or 3, so the student discovers the rule before scene 4 states it. Pick one template and fill "data":
+  slider  { "label", "unit", "min", "max", "threshold", "below": what happens under it, "above": what happens over it, "visual": "flow" | "heat" | "bar" }
+  sort    { "groups": [2–4 names], "items": [{ "label", "group" }] (3–8) }
+  order   { "steps": [3–6 steps in the correct order] }
+  match   { "pairs": [{ "left", "right" }] (3–5) }
+  numeric { "question", "answer": number, "unit", "tolerance", "hint" }
+  Add a "prediction" the student answers first, and a "reveal" explaining the result. Use only this chapter's concepts.
+
 STYLE
 - British English, second-year university level.
 - Scene text under 80 words. Clues and evidence under 50 words. Dialogue lines under 25 words.
@@ -131,12 +143,13 @@ OUTPUT
         "clue_ids": [],
         "concept_ids": ["c1"]
       },
-      { "n": 2, "type": "failed_attempts", "text": "string", "dialogue": [], "clue_ids": ["k1"], "concept_ids": ["c1"] },
+      { "n": 2, "type": "failed_attempts", "text": "string", "dialogue": [], "clue_ids": ["k1"], "concept_ids": ["c1"],
+        "art": { "location": "study", "view": "city", "time": "dusk", "weather": "rain", "ambient": "flicker", "props": ["dissection_table", "specimen_jars", "candle"], "poses": [{ "name": "Xavier Bichat", "pose": "experiment" }] } },
       { "n": 3, "type": "breakthrough", "text": "string", "dialogue": [], "clue_ids": ["k2", "k3"], "concept_ids": ["c1", "c3"] },
       { "n": 4, "type": "todays_rule", "text": "string", "dialogue": [], "clue_ids": ["k4"], "concept_ids": ["c2", "c3"] }
     ],
     "clues": [
-      { "id": "k1", "type": "artefact", "title": "string", "text": "string", "concept_ids": ["c1"] },
+      { "id": "k1", "type": "artefact", "title": "string", "text": "string", "concept_ids": ["c1"], "prop": "specimen_jars" },
       { "id": "k4", "type": "course_material", "title": "string", "text": "string", "source_id": "src2", "concept_ids": ["c3"] }
     ],
     "mentor_question": {
@@ -151,7 +164,18 @@ OUTPUT
       { "concept_id": "c1", "note": "string" },
       { "concept_id": "c3", "note": "string" }
     ],
-    "what_really_happened": { "summary": "string", "event_ids": ["ev1", "ev2"] }
+    "what_really_happened": { "summary": "string", "event_ids": ["ev1", "ev2"] },
+    "mentor_chat": { "scene": 1, "options": [{ "ask": "string", "reply": "string" }] },
+    "experiment": {
+      "scene": 2,
+      "template": "sort",
+      "title": "string",
+      "prompt": "string",
+      "prediction": { "question": "string", "options": ["string", "string", "string"], "correct_index": 0 },
+      "data": { "groups": ["string", "string"], "items": [{ "label": "string", "group": "string" }] },
+      "reveal": "string",
+      "concept_ids": ["c1"]
+    }
   },
 
   "assessment": {
@@ -206,6 +230,10 @@ OUTPUT
 
 ---
 
+### Optional extras
+
+`scenes[].art`, `clues[].prop`, `era.mentor_chat` and `era.experiment` are optional. The code repairs or drops a malformed extra (unknown props removed, a hidden clue whose prop isn't in its scene becomes a normal card, an experiment whose data doesn't fit its template is skipped) instead of rejecting the chapter. Scenes without art use a default room for the era skin. The allowed art values (ART LIBRARY) are appended to the system prompt by the code from `apps/web/src/features/time-travel/art/catalog.ts`.
+
 ## 5. Validation (code, after every call)
 
 Reject and retry once, then set `failed`, if any check fails:
@@ -215,7 +243,7 @@ Reject and retry once, then set `failed`, if any check fails:
 - [ ] 3–5 concepts; every scene, clue, field note, evidence item and mistake references real concept ids
 - [ ] Every concept appears in at least one field note **and** is tested somewhere in the assessment
 - [ ] Every cast member's `event_ids` exist in the input `key_events`
-- [ ] No year in the era that isn't in `key_events`
+- [ ] No year in the era that isn't in `key_events` (a decade such as "1750s" is accepted when a key event falls in it)
 - [ ] At least one `course_material` clue with a valid `source_id`
 - [ ] Exactly 4 scenes, of types problem → failed_attempts → breakthrough → todays_rule
 - [ ] Stage 1 has at least one `relevant: false` evidence item (so investigating takes judgement)

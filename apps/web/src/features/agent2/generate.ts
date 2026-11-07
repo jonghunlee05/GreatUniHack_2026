@@ -15,6 +15,7 @@ import { describeClaudeError, getClaude, logTokens } from "@/lib/claude";
 import { buildAgent2Input } from "./input";
 import { validatePack, type ValidationResult } from "./validate";
 import { MOCK_INPUT, MOCK_PACK } from "./mock";
+import { artCatalogText } from "@/features/time-travel/art/catalog";
 
 const MOCK = () => process.env.AGENT2_MOCK === "true";
 const MODEL = () => process.env.AGENT2_MODEL || "claude-opus-5-5";
@@ -175,7 +176,11 @@ async function runReal(game: Game, chapterId: string, week: number): Promise<Run
       inputTokens: response.usage.input_tokens,
       outputTokens: response.usage.output_tokens,
       ok: result.ok,
-      note: result.ok ? undefined : result.errors.slice(0, 3).join(" | "),
+      note: result.ok
+        ? result.repairs.length
+          ? `repaired: ${result.repairs.slice(0, 3).join(" | ")}`
+          : undefined
+        : result.errors.slice(0, 3).join(" | "),
     });
 
     if (result.ok) return { pack: { ...result.pack, chapter_id: chapterId }, input };
@@ -234,5 +239,8 @@ async function loadSystemPrompt(): Promise<string> {
   const prompt = (md.split("## 3. System prompt")[1] ?? "").match(/```\n([\s\S]*?)\n```/);
   const schema = (md.split("## 4. Output schema")[1] ?? "").match(/```json\n([\s\S]*?)\n```/);
   if (!prompt || !schema) throw new GenerateError("Could not read the Agent 2 system prompt.", 500);
-  return `${prompt[1].trim()}\n\nSCHEMA (field names and structure to follow exactly; replace the example values):\n${schema[1].trim()}`;
+  return (
+    `${prompt[1].trim()}\n\nSCHEMA (field names and structure to follow exactly; replace the example values):\n${schema[1].trim()}` +
+    `\n\nART LIBRARY (allowed values for scene art):\n${artCatalogText()}`
+  );
 }

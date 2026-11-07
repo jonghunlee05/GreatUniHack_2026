@@ -17,6 +17,23 @@ export const ConceptSchema = z.object({
   statement: z.string(),
 });
 
+/*
+ * Optional extras (scene art, hidden clues, mentor chat, experiment).
+ * Everything here uses .catch(): a malformed extra is dropped or defaulted,
+ * never a reason to reject the chapter. The renderer falls back to default art.
+ */
+const loose = <T extends z.ZodType>(schema: T) => schema.optional().catch(undefined);
+
+export const SceneArtSchema = z.object({
+  location: z.string().catch("study"),
+  view: z.string().catch("none"),
+  time: z.string().catch("day"),
+  weather: z.string().catch("clear"),
+  ambient: z.string().catch("none"),
+  props: z.array(z.string()).catch([]),
+  poses: z.array(z.object({ name: z.string(), pose: z.string() })).catch([]),
+});
+
 export const SceneSchema = z.object({
   n: z.number().int(),
   type: z.enum(["problem", "failed_attempts", "breakthrough", "todays_rule"]),
@@ -24,6 +41,30 @@ export const SceneSchema = z.object({
   dialogue: z.array(z.object({ speaker: z.string(), line: z.string() })),
   clue_ids: z.array(z.string()),
   concept_ids: ConceptIds,
+  art: loose(SceneArtSchema),
+});
+
+export const MentorChatSchema = z.object({
+  scene: z.number().int(),
+  options: z.array(z.object({ ask: z.string(), reply: z.string() })),
+});
+
+const Prediction = z.object({
+  question: z.string(),
+  options: z.array(z.string()),
+  correct_index: z.number().int(),
+});
+
+export const ExperimentSchema = z.object({
+  scene: z.number().int(),
+  template: z.enum(["slider", "sort", "order", "match", "numeric"]),
+  title: z.string(),
+  prompt: z.string(),
+  prediction: loose(Prediction),
+  /** Template-specific; checked and repaired in validate.ts. */
+  data: z.record(z.string(), z.unknown()),
+  reveal: z.string(),
+  concept_ids: ConceptIds.catch([]),
 });
 
 export const ClueSchema = z.object({
@@ -34,18 +75,20 @@ export const ClueSchema = z.object({
   text: z.string(),
   source_id: z.string().optional(),
   concept_ids: ConceptIds,
+  /** Optional: the scene prop this clue is hidden in (click the prop to find it). */
+  prop: z.string().optional().catch(undefined),
 });
 
 export const EraSchema = z.object({
   setting: z.object({
     place: z.string(),
     year: z.string(),
-    skin: z.enum(["sepia", "postwar", "chemlab", "modern"]),
+    skin: z.enum(["sepia", "postwar", "chemlab", "modern"]).catch("sepia"),
   }),
   cast: z.array(
     z.object({
       name: z.string(),
-      role: z.enum(["lead", "cameo"]),
+      role: z.enum(["lead", "cameo"]).catch("cameo"),
       event_ids: z.array(z.string()),
       scenes: z.array(z.number().int()),
     }),
@@ -68,6 +111,8 @@ export const EraSchema = z.object({
     summary: z.string(),
     event_ids: z.array(z.string()),
   }),
+  mentor_chat: loose(MentorChatSchema),
+  experiment: loose(ExperimentSchema),
 });
 
 export const AssessmentSchema = z.object({
@@ -130,6 +175,9 @@ export type Era = z.infer<typeof EraSchema>;
 export type Assessment = z.infer<typeof AssessmentSchema>;
 export type ChapterPack = z.infer<typeof ChapterPackSchema>;
 export type FieldNote = Era["field_notes"][number];
+export type SceneArt = z.infer<typeof SceneArtSchema>;
+export type MentorChat = z.infer<typeof MentorChatSchema>;
+export type Experiment = z.infer<typeof ExperimentSchema>;
 
 /** Agent 2 input (spec section 2). */
 export type KeyEvent = { id: string; year: string; person: string; event: string };
