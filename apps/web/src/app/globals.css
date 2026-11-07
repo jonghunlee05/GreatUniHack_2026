@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+/* Palette taken from the app-flow diagram (docs/app-flow.png). */
+:root {
+  --background: #fbfaf7;
+  --foreground: #1f1e1b;
+  --muted: #6b6a63;
+  --paper: #f1efe8;
+  --line: #d6d3c8;
+  --mint: #e1f5ee;
+  --mint-ink: #0f6e56;
+  --lilac: #eeedfe;
+  --lilac-ink: #3c3489;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-paper: var(--paper);
+  --color-line: var(--line);
+  --color-mint: var(--mint);
+  --color-mint-ink: var(--mint-ink);
+  --color-lilac: var(--lilac);
+  --color-lilac-ink: var(--lilac-ink);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}

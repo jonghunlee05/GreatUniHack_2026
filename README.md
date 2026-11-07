@@ -159,4 +159,23 @@ Build **one chapter end to end** before anything else:
 
 ## 10. Getting started
 
-_To be filled in once the repo is scaffolded (install, env vars, run commands)._
+The web app lives in `apps/web` (Next.js 16 + TypeScript + Tailwind). It calls Claude (`claude-opus-5-5`) through the Anthropic SDK.
+
+```bash
+cd apps/web
+npm install
+cp .env.example .env.local   # then paste your ANTHROPIC_API_KEY
+npm run dev                  # http://localhost:3000
+```
+
+What's built so far (Justin):
+
+| Part | Where |
+|---|---|
+| Home: list of games + "New game" | `apps/web/src/app/page.tsx` |
+| Upload course materials (PDF, .pptx, .txt/.md) | `apps/web/src/app/new/page.tsx`, `apps/web/src/lib/ingest.ts` |
+| AI game generator: maps the course into chapters + writes ILOs | `apps/web/src/app/api/games/route.ts`, `apps/web/src/lib/generator.ts` |
+| Generator instructions (`skills.md`) | `prompts/game-generator/skills.md` |
+| Game / Chapter / ILO schema | `apps/web/src/lib/game-schema.ts` |
+
+Generated games are saved as JSON in `apps/web/data/games/`, which is gitignored.
