@@ -50,3 +50,22 @@ src/features/teaching-room/TeachingRoomSection.tsx  ← the section's UI (start 
 
 `AlexBrain` (what Alex has been taught) connects the teaching room and the
 assessment room. When it's defined, put it in `src/lib/`.
+
+## Purple rooms implementation
+
+The web MVP is implemented in `teaching-room/`, `assessment-room/`, and
+`purple-shared/`. It uses the generated `Game` contract without changing the
+generator or Justin-owned pages.
+
+- State is stored under `teachback:purple:v1:<game-id>` in browser localStorage.
+- Knowledge is isolated per chapter and stores levels, exact student evidence,
+  missing reasoning, possible misconceptions, confidence, and update turn.
+- Assessment decisions are deterministic: Alex reads only his stored brain,
+  transmitted evidence, and whether the mentor intervened.
+- Report scoring is transparent (30 teaching, 30 independent performance,
+  15 transfer, 10 evidence, 15 diagnosis).
+- Repair only sets a target and returns to teaching; it never increases mastery.
+- Rematch resets the mission with a changed context while retaining Alex's brain.
+
+The standalone Python demo remains at the repository root. The browser version
+is the integration target for the Next.js app and needs no Python process.
