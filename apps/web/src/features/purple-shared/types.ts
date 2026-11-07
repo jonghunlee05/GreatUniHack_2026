@@ -156,10 +156,10 @@ export function initialAttempt(chapter: Chapter, rematch = 0): AttemptState {
 export function initialState(game: Game): PurpleState {
   const first = game.chapters[0];
   const brains = Object.fromEntries(game.chapters.map((chapter) => [chapterKey(chapter.week), initialBrain(chapter)]));
-  const conversations = Object.fromEntries(
+  const conversations: Record<string, TeachingMessage[]> = Object.fromEntries(
     game.chapters.map((chapter) => [
       chapterKey(chapter.week),
-      [{ id: `alex-${chapter.week}-0`, role: "alex", text: `I know almost nothing about ${chapter.title}. What should I understand first?` }],
+      [{ id: `alex-${chapter.week}-0`, role: "alex" as const, text: `I know almost nothing about ${chapter.title}. What should I understand first?` }],
     ]),
   );
   return {
