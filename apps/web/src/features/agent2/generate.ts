@@ -1,9 +1,8 @@
 import "server-only";
 import { promises as fs } from "fs";
 import path from "path";
-import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import type { Game } from "@/lib/game-schema";
-import { ChapterPackSchema, chapterIdFor, type Agent2Input, type ChapterPack } from "@/lib/chapter-pack";
+import { chapterIdFor, type Agent2Input, type ChapterPack } from "@/lib/chapter-pack";
 import {
   getPack,
   savePack,
@@ -141,11 +140,13 @@ async function runReal(game: Game, chapterId: string, week: number): Promise<Run
         ? `\n\nYour previous output failed these checks. Fix them:\n- ${lastErrors.join("\n- ")}`
         : "");
 
-    const response = await getClaude().beta.messages.parse({
+    // Plain JSON output, checked by our validator (the pack schema is too large
+    // for API-enforced structured outputs).
+    const response = await getClaude().beta.messages.create({
       model: MODEL(),
       max_tokens: MAX_TOKENS(),
       system,
-      output_config: { effort: "medium", format: betaZodOutputFormat(ChapterPackSchema) },
+      output_config: { effort: "medium" },
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
       messages: [{ role: "user", content: userText }],
@@ -154,14 +155,7 @@ async function runReal(game: Game, chapterId: string, week: number): Promise<Run
     const text = response.content
       .map((b) => (b.type === "text" ? b.text : ""))
       .join("");
-    let raw: unknown = response.parsed_output;
-    if (!raw) {
-      try {
-        raw = JSON.parse(text);
-      } catch {
-        raw = null;
-      }
-    }
+    const raw = parseJson(text);
 
     const result: ValidationResult =
       response.stop_reason === "refusal"
@@ -186,6 +180,7 @@ async function runReal(game: Game, chapterId: string, week: number): Promise<Run
 
     if (result.ok) return { pack: { ...result.pack, chapter_id: chapterId }, input };
     lastErrors = result.errors;
+    await saveRejectedOutput(game.id, chapterId, attempt, text, result.errors);
   }
 
   throw new GenerateError(
@@ -194,12 +189,50 @@ async function runReal(game: Game, chapterId: string, week: number): Promise<Run
   );
 }
 
-/** System prompt = the code block under "## 3. System prompt" in the spec file. */
+/** Keeps rejected outputs in data/logs/rejected so they can be checked without paying again. */
+async function saveRejectedOutput(
+  gameId: string,
+  chapterId: string,
+  attempt: number,
+  text: string,
+  errors: string[],
+): Promise<void> {
+  try {
+    const dir = path.join(process.cwd(), "data", "logs", "rejected");
+    await fs.mkdir(dir, { recursive: true });
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    await fs.writeFile(
+      path.join(dir, `${gameId}-${chapterId}-${stamp}-attempt${attempt}.json`),
+      JSON.stringify({ errors, text }, null, 2),
+    );
+  } catch {
+    // never block generation on debug logging
+  }
+}
+
+/** Parses the model's JSON, tolerating a ```json fence or text around the object. */
+function parseJson(text: string): unknown {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const body = fenced ? fenced[1] : text;
+  const start = body.indexOf("{");
+  const end = body.lastIndexOf("}");
+  if (start === -1 || end <= start) return null;
+  try {
+    return JSON.parse(body.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * System prompt = the code block under "## 3. System prompt" in the spec file,
+ * followed by the output schema from section 4 (the model needs to see it).
+ */
 async function loadSystemPrompt(): Promise<string> {
   const file = path.join(process.cwd(), "..", "..", "prompts", "agent2-event-generator.md");
   const md = await fs.readFile(file, "utf8");
-  const section = md.split("## 3. System prompt")[1] ?? "";
-  const match = section.match(/```\n([\s\S]*?)\n```/);
-  if (!match) throw new GenerateError("Could not read the Agent 2 system prompt.", 500);
-  return match[1].trim();
+  const prompt = (md.split("## 3. System prompt")[1] ?? "").match(/```\n([\s\S]*?)\n```/);
+  const schema = (md.split("## 4. Output schema")[1] ?? "").match(/```json\n([\s\S]*?)\n```/);
+  if (!prompt || !schema) throw new GenerateError("Could not read the Agent 2 system prompt.", 500);
+  return `${prompt[1].trim()}\n\nSCHEMA (field names and structure to follow exactly; replace the example values):\n${schema[1].trim()}`;
 }

@@ -28,7 +28,8 @@ export const SceneSchema = z.object({
 
 export const ClueSchema = z.object({
   id: z.string(),
-  type: z.enum(["artefact", "course_material"]),
+  /** "course_material" clues must cite a source_id; other types (artefact, document, …) are free. */
+  type: z.string(),
   title: z.string(),
   text: z.string(),
   source_id: z.string().optional(),

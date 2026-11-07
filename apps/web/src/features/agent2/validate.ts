@@ -82,10 +82,8 @@ export function validatePack(raw: unknown, input: Agent2Input): ValidationResult
 
   // 6. No year in the era that isn't in key_events
   const allowedYears = input.chapter.key_events.map((e) => e.year).join(" ");
-  if (!input.chapter.key_events.some((e) => e.year === era.setting.year)) {
-    errors.push(`Era year "${era.setting.year}" is not one of the key_events years.`);
-  }
   const eraText = [
+    era.setting.year,
     ...era.scenes.flatMap((s) => [s.text, ...s.dialogue.map((d) => d.line)]),
     ...era.clues.filter((c) => c.type !== "course_material").map((c) => c.text),
     era.mentor_question.question,

@@ -17,8 +17,14 @@ export function getClaude(): Anthropic {
 export function describeClaudeError(error: unknown): string {
   if (error instanceof Anthropic.AuthenticationError) return "Claude API key missing or invalid.";
   if (error instanceof Anthropic.RateLimitError) return "Rate limited by the Claude API. Try again in a minute.";
-  if (error instanceof Anthropic.BadRequestError) return `The Claude API rejected the request: ${error.message}`;
-  if (error instanceof Anthropic.APIError) return `Claude API error (${error.status}): ${error.message}`;
+  if (error instanceof Anthropic.APIError) {
+    // Prefer the API's own short message over the raw JSON body.
+    const body = error.error as { error?: { message?: string } } | undefined;
+    const detail = body?.error?.message ?? error.message;
+    return error instanceof Anthropic.BadRequestError
+      ? `The Claude API rejected the request: ${detail}`
+      : `Claude API error (${error.status}): ${detail}`;
+  }
   return error instanceof Error ? error.message : "Unknown error calling Claude.";
 }
 
