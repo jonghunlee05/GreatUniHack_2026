@@ -1,4 +1,4 @@
-# TeachBack flowcharts
+# Flowcharts
 
 Three landscape diagrams using the same visual style: pale mint and lavender boxes, dark text, rounded corners and thin arrows on a white background.
 
@@ -8,13 +8,13 @@ These diagrams summarise the product flow and architecture. They do not replace 
 
 Start a course, explore chapters, teach Alex, play a mission and review feedback. Passing unlocks the next chapter. Gaps lead back to teaching.
 
-![TeachBack app flow](app-flow.png)
+![App flow](app-flow.png)
 
 ## Chapter learning loop
 
 Explore a historical era, explain the chapter to Alex and test his understanding in a mission. Keep teaching when Alex is not ready, and revisit weak concepts after assessment.
 
-![TeachBack chapter learning loop](chapter-loop.png)
+![Chapter learning loop](chapter-loop.png)
 
 ## System overview
 
@@ -22,7 +22,7 @@ The curriculum and event agents prepare course and chapter content. Student expl
 
 Validation is grouped with event generation. Assessment, reporting and repair feedback are grouped together for readability.
 
-![TeachBack system overview](system-overview.png)
+![System overview](system-overview.png)
 
 ## Image provenance
 
