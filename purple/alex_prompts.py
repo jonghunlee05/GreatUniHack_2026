@@ -92,6 +92,26 @@ def chapter_block(chapter: Chapter) -> str:
     return text
 
 
+# How much Alex talks, chosen in the teaching room ("short" | "normal" | "chatty").
+# Set per request by web_bridge (one process per request). Goes in the volatile turn
+# content, never the cached prefix, and never touches the teacher's words.
+LENGTH_RULES = {
+    "short": "LENGTH: The teacher wants you brief. alex_reply must be ONE short sentence plus your one question, under 20 words in total.",
+    "normal": "LENGTH: Keep alex_reply under 35 words: at most one short sentence plus your one question.",
+    "chatty": "",
+}
+_reply_length = "normal"
+
+
+def set_reply_length(value: str | None) -> None:
+    global _reply_length
+    _reply_length = value if value in LENGTH_RULES else "normal"
+
+
+def length_rule() -> str:
+    return LENGTH_RULES.get(_reply_length, "")
+
+
 def turn_prompt(
     *,
     message: str,
@@ -114,6 +134,8 @@ def turn_prompt(
     source = {"voice": "spoken (transcribed)", "image": "with an attached image"}.get(modality, "typed")
     if has_image and modality != "image":
         source += ", with an attached image"
+    if length_rule():
+        lines.append(length_rule())
     lines.append(f"TEACHER'S NEW MESSAGE ({source}):\n{message.strip() or '(no text, image only)'}")
     return "\n".join(lines)
 

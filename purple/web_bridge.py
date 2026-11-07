@@ -38,6 +38,7 @@ from .alex_media import (
     transcribe_audio,
     transcription_available,
 )
+from .alex_prompts import set_reply_length
 from .alex_schemas import AssessmentFeedback, TeachingInput
 from .contracts import Chapter
 
@@ -100,6 +101,7 @@ def _history(req: dict) -> list[dict]:
 
 def handle(req: dict) -> dict:
     command = req.get("command")
+    set_reply_length(req.get("replyLength"))  # teaching-room talkativeness setting
     if command in MISSION_COMMANDS:
         return handle_mission(req)
     if command not in {"status", "transcribe", "speak", "turn", "action"}:
