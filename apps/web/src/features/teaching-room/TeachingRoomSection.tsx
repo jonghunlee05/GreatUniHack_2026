@@ -60,6 +60,7 @@ export function TeachingRoomSection({ game }: { game: Game }) {
   const [bubbleOverride, setBubbleOverride] = useState<string | null>(null);
   const currentAudio = useRef<HTMLAudioElement | null>(null);
   const lastSpeech = useRef<Promise<void>>(Promise.resolve());
+  const speechGen = useRef(0); // bumped by skipAlex() so a reply still downloading never starts playing
   const chatEnd = useRef<HTMLDivElement>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const audioCache = useRef(new Map<string, string>());
@@ -95,6 +96,7 @@ export function TeachingRoomSection({ game }: { game: Game }) {
 
   /** Plays Alex's reply. Resolves when the audio ends (or right away if voice is off), so the stand-up can wait for it. */
   function speak(text: string, responseId: string, force = false): Promise<void> {
+    const gen = speechGen.current;
     const done = (async () => {
       if (!status?.speech || (muted && !force)) return;
       try {
@@ -105,6 +107,7 @@ export function TeachingRoomSection({ game }: { game: Game }) {
           url = `data:audio/mpeg;base64,${r.audioBase64 as string}`;
           audioCache.current.set(responseId, url);
         }
+        if (gen !== speechGen.current) return; // interrupted while downloading
         const audio = new Audio(url);
         audio.dataset.alex = "1";
         currentAudio.current = audio;
@@ -147,6 +150,7 @@ export function TeachingRoomSection({ game }: { game: Game }) {
   }
 
   function skipAlex() {
+    speechGen.current += 1;
     currentAudio.current?.pause();
   }
 

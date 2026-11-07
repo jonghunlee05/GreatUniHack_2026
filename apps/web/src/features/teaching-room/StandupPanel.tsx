@@ -8,11 +8,11 @@ type Phase = "idle" | "greeting" | "listening" | "transcribing" | "thinking" | "
 
 const PHASE_LABEL: Record<Phase, string> = {
   idle: "Ready",
-  greeting: "Alex is saying hello…",
+  greeting: "Alex is saying hello… (talk over him or say “stop” to cut in)",
   listening: "Listening… talk to Alex, then pause",
   transcribing: "Catching what you said…",
   thinking: "Alex is thinking…",
-  speaking: "Alex is talking…",
+  speaking: "Alex is talking… (talk over him or say “stop” to cut in)",
 };
 
 // Simple voice-activity detection on the mic level.
@@ -20,6 +20,46 @@ const SPEAKING_RMS = 0.03; // louder than this = you're talking
 const END_SILENCE_MS = 1400; // a pause this long ends your turn
 const NO_SPEECH_MS = 15000; // nothing heard for this long = skip the turn
 const MAX_TURN_MS = 45000;
+
+// Interrupting Alex ("barge-in"): louder than normal speech so Alex's own voice
+// through the speakers doesn't trigger it (headphones work best).
+const BARGE_RMS = 0.08;
+const BARGE_MS = 450;
+const STOP_WORDS = /\b(shut up|stop|be quiet|quiet|hold on|wait)\b/;
+
+/** Minimal typing for the browser's built-in speech recognition (Chrome, Edge, Safari). */
+type Recognizer = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((e: { resultIndex: number; results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onerror: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+/** Listens for "shut up" / "stop" / "wait"… while Alex talks. Returns null if the browser can't. */
+function startStopWordListener(onStop: () => void): Recognizer | null {
+  const w = window as unknown as { SpeechRecognition?: new () => Recognizer; webkitSpeechRecognition?: new () => Recognizer };
+  const SR = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+  if (!SR) return null;
+  const rec = new SR();
+  rec.continuous = true;
+  rec.interimResults = true;
+  rec.lang = "en-GB";
+  rec.onresult = (e) => {
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (STOP_WORDS.test(e.results[i][0].transcript.toLowerCase())) onStop();
+    }
+  };
+  rec.onerror = () => undefined;
+  try {
+    rec.start();
+  } catch {
+    return null;
+  }
+  return rec;
+}
 
 /**
  * Live stand-up: a hands-free spoken conversation with Alex.
@@ -114,6 +154,45 @@ export function StandupPanel(props: {
     });
   }
 
+  /**
+   * Waits for Alex to finish talking, unless you interrupt:
+   * talking over him (mic level) or saying a stop word. Interrupting cuts his audio.
+   */
+  async function untilAlexDone(): Promise<"done" | "interrupted"> {
+    let cleanup = () => {};
+    const interrupted = new Promise<"interrupted">((resolve) => {
+      let loudSince = 0;
+      let raf = 0;
+      const tick = () => {
+        if (!active.current) return;
+        const now = performance.now();
+        const v = rms();
+        if (v > BARGE_RMS) {
+          loudSince ||= now;
+          if (now - loudSince > BARGE_MS) return resolve("interrupted");
+        } else loudSince = 0;
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      const words = startStopWordListener(() => resolve("interrupted"));
+      cleanup = () => {
+        cancelAnimationFrame(raf);
+        try {
+          words?.stop();
+        } catch {
+          /* already stopped */
+        }
+      };
+    });
+    const result = await Promise.race([latest.current.waitForAlex().then(() => "done" as const), interrupted]);
+    cleanup();
+    if (result === "interrupted") {
+      latest.current.skipAlex();
+      setNote("Okay, Alex stopped. Go ahead.");
+    }
+    return result;
+  }
+
   async function startSession() {
     setNote("");
     try {
@@ -132,7 +211,9 @@ export function StandupPanel(props: {
     latest.current.onLiveChange(true);
 
     setPhase("greeting");
-    await latest.current.greet();
+    const greeting = latest.current.greet(); // starts Alex's hello; resolves when it ends
+    await untilAlexDone();
+    await greeting;
 
     let silentTurns = 0;
     while (active.current) {
@@ -165,7 +246,7 @@ export function StandupPanel(props: {
       if (!active.current) break;
 
       setPhase("speaking");
-      await latest.current.waitForAlex();
+      await untilAlexDone();
     }
     stopSession();
   }
@@ -203,6 +284,9 @@ export function StandupPanel(props: {
           <p className="text-xl leading-snug">
             A quick spoken check-in. Explain this chapter to Alex out loud. He listens, answers with his voice, and asks you
             the next question. No typing, no buttons: just pause when you&apos;ve finished a thought.
+          </p>
+          <p className="text-lg text-px-muted">
+            Want Alex to stop talking? Talk over him, or say “stop” or “shut up”. Headphones work best.
           </p>
           {!props.speechOn && (
             <p className="text-lg text-px-gold">Alex&apos;s voice is off, so his replies will appear as text.</p>
