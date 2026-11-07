@@ -21,10 +21,18 @@ def initialise(state: MutableMapping[str, Any], chapter: Chapter) -> None:
         return
     state[key("chapter_id")] = chapter.chapter_id
     state[key("room")] = "teaching"
-    state[key("brain")] = AlexBrain.for_chapter(chapter).model_dump()
-    state[key("conversation")] = [
-        {"role": "assistant", "content": f"Hi! I know very little about {chapter.title}. What should I learn first?"}
+    # Restore this chapter's Agent 3 state and conversation if it was taught before.
+    from .alex_agent import opening_message
+    from .alex_brain import AlexState
+
+    saved = state.get(key("alex_states"), {}).get(chapter.chapter_id)
+    alex_state = AlexState.coerce(saved, chapter) if saved else AlexState.for_chapter(chapter)
+    state[key("brain")] = alex_state.brain.model_dump()
+    saved_conversation = state.get(key("conversations"), {}).get(chapter.chapter_id)
+    state[key("conversation")] = list(saved_conversation) if saved_conversation else [
+        {"role": "assistant", "content": opening_message(chapter, alex_state)}
     ]
+    state[key("feedback_sent")] = False
     state[key("task")] = get_assessment_task(chapter).model_dump()
     state[key("attempt")] = Attempt(task_id=state[key("task")]["task_id"]).model_dump()
     state[key("assessment_phase")] = "evidence"
@@ -43,6 +51,7 @@ def set_room(state: MutableMapping[str, Any], room: str) -> None:
 
 def start_repair(state: MutableMapping[str, Any], concept_id: str) -> None:
     state[key("repair_target")] = concept_id
+    state[key("feedback_sent")] = False
     state[key("room")] = "teaching"
 
 

@@ -1,4 +1,6 @@
-type Mood = "idle" | "reading" | "worried";
+// Agent 3 reactions (teaching room) extend the original idle/reading/worried moods.
+export type AlexReaction = "curious" | "confused" | "thinking" | "understanding" | "got_it";
+type Mood = "idle" | "reading" | "worried" | AlexReaction;
 
 /**
  * Alex, the AI apprentice, as a 48×66 pixel sprite (same art as the lobby).
@@ -42,6 +44,61 @@ export function AlexSprite({
           <>
             <rect x="20" y="25" width="8" height="2" fill="#1A1428" />
             <rect className="anim-blink" x="42" y="10" width="4" height="6" fill="#5BA7E8" />
+          </>
+        )}
+
+        {mood === "curious" && (
+          <g className="anim-pop">
+            {/* gold "?" above the head */}
+            <rect x="40" y="0" width="6" height="2" fill="#F2C14E" />
+            <rect x="44" y="2" width="2" height="2" fill="#F2C14E" />
+            <rect x="42" y="4" width="2" height="2" fill="#F2C14E" />
+            <rect x="42" y="8" width="2" height="2" fill="#F2C14E" />
+            <rect x="22" y="24" width="4" height="2" fill="#1A1428" />
+          </g>
+        )}
+        {mood === "confused" && (
+          <>
+            {/* wavy mouth, sweat drop, red "?" */}
+            <rect x="18" y="25" width="4" height="2" fill="#1A1428" />
+            <rect x="22" y="24" width="4" height="2" fill="#1A1428" />
+            <rect x="26" y="25" width="4" height="2" fill="#1A1428" />
+            <rect className="anim-blink" x="40" y="12" width="3" height="5" fill="#5BA7E8" />
+            <rect x="2" y="0" width="6" height="2" fill="#E0604A" />
+            <rect x="6" y="2" width="2" height="2" fill="#E0604A" />
+            <rect x="4" y="4" width="2" height="2" fill="#E0604A" />
+            <rect x="4" y="8" width="2" height="2" fill="#E0604A" />
+          </>
+        )}
+        {mood === "thinking" && (
+          <g className="anim-blink">
+            {/* "..." thought dots */}
+            <rect x="34" y="0" width="3" height="3" fill="#A89CF5" />
+            <rect x="39" y="0" width="3" height="3" fill="#A89CF5" />
+            <rect x="44" y="0" width="3" height="3" fill="#A89CF5" />
+            <rect x="20" y="24" width="8" height="2" fill="#1A1428" />
+          </g>
+        )}
+        {mood === "understanding" && (
+          <>
+            {/* smile + small lightbulb */}
+            <rect x="18" y="24" width="2" height="2" fill="#1A1428" />
+            <rect x="20" y="26" width="8" height="2" fill="#1A1428" />
+            <rect x="28" y="24" width="2" height="2" fill="#1A1428" />
+            <rect className="anim-glow" x="41" y="0" width="6" height="6" fill="#F2C14E" />
+            <rect x="42" y="6" width="4" height="2" fill="#9AA0AE" />
+          </>
+        )}
+        {mood === "got_it" && (
+          <>
+            {/* big grin + sparkle */}
+            <rect x="16" y="24" width="16" height="2" fill="#1A1428" />
+            <rect x="18" y="26" width="12" height="2" fill="#8E2F2A" />
+            <g className="anim-pop">
+              <rect x="42" y="2" width="2" height="8" fill="#F2C14E" />
+              <rect x="39" y="5" width="8" height="2" fill="#F2C14E" />
+              <rect x="2" y="6" width="2" height="2" fill="#F2C14E" />
+            </g>
           </>
         )}
 

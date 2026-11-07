@@ -23,6 +23,10 @@ export type TeachingMessage = {
   id: string;
   role: "student" | "alex";
   text: string;
+  /** Agent 3 metadata (optional; older saved conversations lack it). */
+  strategy?: string;
+  reaction?: string;
+  modality?: "text" | "voice" | "image" | "action";
 };
 
 export type Decision = {
@@ -57,6 +61,10 @@ export type PurpleState = {
   attempts: Record<string, AttemptState>;
   previousAttempts: AttemptState[];
   repairTarget: string | null;
+  /** Agent 3 AlexState per chapter, stored opaquely and round-tripped to /api/alex. */
+  alexStates?: Record<string, unknown>;
+  /** Chapter progression: completions per week (unlocks are derived in progression.tsx). */
+  progress?: Record<string, { teachingCompleted?: boolean; assessmentCompleted?: boolean }>;
 };
 
 export type TeachingEvaluation = {

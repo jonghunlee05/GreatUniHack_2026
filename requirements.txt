@@ -2,3 +2,4 @@ streamlit>=1.40,<2
 pydantic>=2.8,<3
 pytest>=8,<10
 requests>=2.31,<3
+anthropic>=2.6,<3

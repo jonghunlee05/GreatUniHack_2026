@@ -15,7 +15,9 @@ streamlit run demo_purple.py
 
 No API key is required. The offline evaluator is deterministic and conservative. Text teaching is complete; voice capture and image upload are accepted as optional inputs, but the offline demo does not transcribe or interpret them.
 
-For optional live source-grounded teaching evaluation through an OpenAI-compatible endpoint:
+Alex (Agent 3) uses Claude when `ANTHROPIC_API_KEY` is set (or present in `apps/web/.env.local`). See [AGENT3_README.md](AGENT3_README.md).
+
+The legacy `AlexBrain.evaluate_and_learn` path (still used by older callers) can use an OpenAI-compatible endpoint:
 
 ```bash
 export PURPLE_LLM_API_KEY="..."

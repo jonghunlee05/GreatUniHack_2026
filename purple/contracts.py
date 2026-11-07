@@ -20,6 +20,9 @@ class Concept(BaseModel):
     key_points: list[str] = Field(default_factory=list)
     common_misconceptions: list[str] = Field(default_factory=list)
     source_ref: str = "generated chapter"
+    objective_id: str | None = None
+    # "weak" when the pack has no real reference explanation (e.g. web-generated chapters).
+    reference_quality: Literal["full", "weak"] = "full"
 
 
 class Chapter(BaseModel):
@@ -30,6 +33,7 @@ class Chapter(BaseModel):
     summary: str = ""
     learning_objectives: list[LearningObjective]
     concepts: list[Concept]
+    source_material: str = ""
 
     @model_validator(mode="after")
     def has_teachable_content(self) -> "Chapter":
@@ -73,6 +77,8 @@ class Chapter(BaseModel):
                         reference_explanation=raw.get("summary", "") or ilo.get("statement", name),
                         key_points=[ilo.get("statement", name)],
                         source_ref=source,
+                        objective_id=ilo.get("id"),
+                        reference_quality="weak",
                     )
                 )
         if not concepts:
@@ -83,6 +89,7 @@ class Chapter(BaseModel):
                     reference_explanation=raw.get("summary", raw.get("title", "")),
                     key_points=[obj.text for obj in objectives],
                     source_ref=source,
+                    reference_quality="weak",
                 )
             ]
         if not objectives:
@@ -104,6 +111,7 @@ class ConceptKnowledge(BaseModel):
     supporting_evidence: list[str] = Field(default_factory=list)
     missing_points: list[str] = Field(default_factory=list)
     misconceptions: list[str] = Field(default_factory=list)
+    resolved_misconceptions: list[str] = Field(default_factory=list)
     confidence: float = Field(default=0.0, ge=0, le=1)
     last_updated_turn: int = 0
 

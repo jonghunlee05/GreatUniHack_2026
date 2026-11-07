@@ -9,6 +9,7 @@ import { PixelPanel, SpeechBubble } from "@/components/pixel/PixelPanel";
 import { conceptForRepair, decide, makeMission, scoreAttempt } from "@/features/purple-shared/engine";
 import { chapterKey, initialAttempt } from "@/features/purple-shared/types";
 import { usePurpleState } from "@/features/purple-shared/state";
+import { ChapterRail, PASS_SCORE, chapterProgress, markProgress } from "@/features/purple-shared/progression";
 
 const SCORE_LABELS: Record<string, [string, number]> = {
   teaching: ["Teaching accuracy", 30], independent: ["Independent performance", 30],
@@ -45,9 +46,22 @@ export function AssessmentRoomSection({ game }: { game: Game }) {
     save({ ...attempt, decisions: [...attempt.decisions.filter((item) => item.phase !== phase), result] });
   }
 
+  const progress = chapterProgress(game, state);
+  const nextChapter = game.chapters[game.chapters.findIndex((item) => item.week === chapter.week) + 1];
+
   function finish() {
     const scored = scoreAttempt(brain, task, attempt);
-    save({ ...attempt, phase: "report", completed: true, score: scored.total, scoreParts: scored.parts });
+    const done = { ...attempt, phase: "report" as const, completed: true, score: scored.total, scoreParts: scored.parts };
+    update((current) => {
+      const saved = { ...current, attempts: { ...current.attempts, [key]: done } };
+      // Passing unlocks the next teaching chapter (Agent 3 never decides this).
+      return scored.total >= PASS_SCORE ? markProgress(saved, chapter.week, "assessmentCompleted") : saved;
+    });
+  }
+
+  function chooseChapter(week: number) {
+    if (!progress[week]?.assessmentUnlocked) return;
+    update((current) => ({ ...current, currentChapterWeek: week }));
   }
 
   function repair(conceptId: string) {
@@ -62,8 +76,23 @@ export function AssessmentRoomSection({ game }: { game: Game }) {
 
   if (!ready) return <PixelPanel><p>Loading Mission Control...</p></PixelPanel>;
 
+  const rail = <ChapterRail game={game} state={state} mode="assessment" currentWeek={chapter.week} onSelect={chooseChapter} />;
+  if (!progress[chapter.week]?.assessmentUnlocked) {
+    return (
+      <div className="space-y-6">
+        {rail}
+        <PixelPanel tone="danger">
+          <p className="font-pixel text-[0.65rem]">🔒 ASSESSMENT LOCKED</p>
+          <p className="mt-2">Finish teaching Week {chapter.week} first, then Mission Control opens.</p>
+          <PixelButton className="mt-4" onClick={() => router.push(`/games/${game.id}/teaching-room`)}>Back to Teaching Room</PixelButton>
+        </PixelPanel>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {rail}
       <PixelPanel className="[--px-b:var(--px-violet)]">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div><p className="font-pixel text-[0.6rem] text-px-violet">MISSION CONTROL · WEEK {chapter.week}</p><h2 className="mt-3 font-pixel text-sm leading-relaxed text-px-cream">{task.title}</h2><p className="mt-3 max-w-3xl text-2xl">{task.scenario}</p></div>
@@ -104,6 +133,22 @@ export function AssessmentRoomSection({ game }: { game: Game }) {
 
       {attempt.phase === "report" && attempt.score !== null && (
         <section className="space-y-6">
+          {attempt.score >= PASS_SCORE ? (
+            <PixelPanel className="[--px-b:var(--px-mint)]">
+              <p className="font-pixel text-[0.65rem] text-px-mint">★ CHAPTER PASSED</p>
+              <p className="mt-2">{nextChapter ? `Teaching for Week ${nextChapter.week} is now unlocked.` : "That was the final chapter. Course complete!"}</p>
+              {nextChapter && (
+                <PixelButton className="mt-4" onClick={() => { update((current) => ({ ...current, currentChapterWeek: nextChapter.week, repairTarget: null })); router.push(`/games/${game.id}/teaching-room`); }}>
+                  Teach Week {nextChapter.week} →
+                </PixelButton>
+              )}
+            </PixelPanel>
+          ) : (
+            <PixelPanel tone="danger">
+              <p className="font-pixel text-[0.65rem]">NOT PASSED YET</p>
+              <p className="mt-2">Score {PASS_SCORE}+ to unlock the next chapter. Repair a knowledge card or try a rematch.</p>
+            </PixelPanel>
+          )}
           <div className="grid gap-5 md:grid-cols-[15rem_1fr]">
             <PixelPanel className="text-center [--px-b:var(--px-gold)]"><p className="font-pixel text-[0.65rem] text-px-muted">FINAL SCORE</p><p className="mt-5 font-pixel text-4xl text-px-gold">{attempt.score}</p><p className="mt-2 text-2xl">/ 100</p><p className="mt-4 text-3xl">{"★".repeat(attempt.score >= 85 ? 3 : attempt.score >= 65 ? 2 : attempt.score >= 40 ? 1 : 0)}{"☆".repeat(attempt.score >= 85 ? 0 : attempt.score >= 65 ? 1 : attempt.score >= 40 ? 2 : 3)}</p></PixelPanel>
             <PixelPanel><p className="font-pixel text-[0.65rem] text-px-violet">TRANSPARENT SCORING</p><div className="mt-5 space-y-4">{Object.entries(attempt.scoreParts).map(([id, value]) => { const [label, max] = SCORE_LABELS[id]; return <div key={id}><div className="flex justify-between"><span>{label}</span><span>{value}/{max}</span></div><div className="mt-1 h-3 bg-px-night"><div className="h-full bg-px-violet" style={{ width: `${100 * value / max}%` }} /></div></div>; })}</div></PixelPanel>
