@@ -75,7 +75,10 @@ def build_mission(chapter: Chapter, pack: dict | None = None, *, variant: int = 
     path = _cache_path(game_id or chapter.game_id, chapter.chapter_id, variant)
     if use_cache and path and path.exists():
         try:
-            return Mission.model_validate_json(path.read_text())
+            cached = Mission.model_validate_json(path.read_text())
+            # A demo/authored mission cached before the chapter pack existed is rebuilt from the pack.
+            if not (pack and pack.get("assessment") and cached.source != "chapter_pack"):
+                return cached
         except ValueError:
             pass  # corrupt cache: rebuild
     mission: Mission | None = None

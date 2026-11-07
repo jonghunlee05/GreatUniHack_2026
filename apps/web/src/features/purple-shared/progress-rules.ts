@@ -28,11 +28,13 @@ export function chapterProgress(game: Game, state: PurpleState): Record<number, 
     const previous = index > 0 ? result[game.chapters[index - 1].week] : undefined;
     const teachingUnlocked = index === 0 || Boolean(previous?.assessmentCompleted);
     const teachingCompleted = teachingUnlocked && Boolean(mine.teachingCompleted);
+    // Week 1's assessment is always open; later weeks open once their teaching is finished.
+    const assessmentUnlocked = index === 0 || teachingCompleted;
     result[chapter.week] = {
       teachingUnlocked,
       teachingCompleted,
-      assessmentUnlocked: teachingCompleted,
-      assessmentCompleted: teachingCompleted && Boolean(mine.assessmentCompleted),
+      assessmentUnlocked,
+      assessmentCompleted: assessmentUnlocked && Boolean(mine.assessmentCompleted),
     };
   });
   return result;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Game } from "@/lib/game-schema";
 import { AlexSprite, type AlexReaction } from "@/components/pixel/AlexSprite";
@@ -10,6 +10,7 @@ import { chapterKey, type MissionAssist, type MissionDecisionView, type MissionR
 import { usePurpleState } from "@/features/purple-shared/state";
 import { ChapterRail, chapterProgress, markProgress } from "@/features/purple-shared/progression";
 import "./assessment.css";
+import { GeneratePackPanel } from "./GeneratePackPanel";
 
 const MAX_HINTS = 2;
 
@@ -66,7 +67,10 @@ export function AssessmentRoomSection({ game }: { game: Game }) {
   const [openStep, setOpenStep] = useState<number | null>(null);
   const [tool, setTool] = useState<"hint" | "pause" | null>(null);
   const [lastAdded, setLastAdded] = useState<string | null>(null);
-  const loadKey = `${game.id}:${chapter.week}:${run.variant}`;
+  const [needsPack, setNeedsPack] = useState(false);
+  const [reload, setReload] = useState(0);
+  const packReady = useCallback(() => { setNeedsPack(false); setReload((n) => n + 1); }, []);
+  const loadKey = `${game.id}:${chapter.week}:${run.variant}:${reload}`;
   const current = loaded?.key === loadKey ? loaded.mission : null;
 
   // Load the server-cached mission once per chapter + variant; rerenders don't refetch.
@@ -75,7 +79,8 @@ export function AssessmentRoomSection({ game }: { game: Game }) {
     let cancelled = false;
     callAlex({ command: "mission_load", gameId: game.id, chapterWeek: chapter.week, variant: run.variant }).then((r) => {
       if (cancelled) return;
-      if (r.ok) { setLoaded({ key: loadKey, mission: r.mission as MissionView }); setError(""); }
+      if (r.ok) { setLoaded({ key: loadKey, mission: r.mission as MissionView }); setError(""); setNeedsPack(false); }
+      else if (r.needsPack) setNeedsPack(true); // same rule as Time-travel: generate the chapter first
       else setError(r.error ?? "Couldn't load the mission.");
     });
     return () => { cancelled = true; };
@@ -168,6 +173,9 @@ export function AssessmentRoomSection({ game }: { game: Game }) {
         </PixelPanel>
       </div>
     );
+  }
+  if (needsPack) {
+    return <div className="space-y-6">{rail}<GeneratePackPanel gameId={game.id} week={chapter.week} onReady={packReady} /></div>;
   }
   if (!current) {
     return <div className="space-y-6">{rail}<PixelPanel>{error ? <p className="text-px-red">{error}</p> : <p className="anim-blink">Loading mission…</p>}</PixelPanel></div>;

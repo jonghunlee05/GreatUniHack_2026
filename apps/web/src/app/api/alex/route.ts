@@ -71,7 +71,16 @@ export async function POST(request: Request) {
     payload.game = { id: game.id, course: game.course };
     payload.chapter = chapter;
     // Missions are built from Agent 2's cached chapter pack (read-only; never regenerated here).
-    if (command.startsWith("mission_")) payload.pack = await getPack(game.id, chapterIdFor(chapter.week));
+    if (command.startsWith("mission_")) {
+      payload.pack = await getPack(game.id, chapterIdFor(chapter.week));
+      // Same rule as Time-travel: no generated chapter pack, no mission (no silent demo fallback).
+      if (!payload.pack) {
+        return Response.json(
+          { ok: false, needsPack: true, error: "Generate this chapter first. Its mission comes from the chapter pack." },
+          { status: 409 },
+        );
+      }
+    }
   }
 
   const id = command === "speak" ? body.responseId : body.turnId;
